@@ -1,0 +1,63 @@
+import { Link } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import { useEffect, useState } from "react";
+import type { User, AuthChangeEvent } from "@supabase/supabase-js";
+export default function Navbar() {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event: AuthChangeEvent, session) => {
+        setUser(session?.user ?? null);
+      },
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  return (
+    <nav className="navbar">
+      <div className="navbar-container">
+        <Link to="/" className="navbar-brand">
+          Forum
+        </Link>
+        <div className="navbar-links">
+          {user ? (
+            <>
+              <span className="navbar-user">Welcome, {user.email}</span>
+              <button
+                onClick={handleLogout}
+                className="btn btn-secondary btn-sm"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="btn btn-outline btn-sm">
+                Login
+              </Link>
+              <Link to="/register" className="btn btn-primary btn-sm">
+                Register
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+}
