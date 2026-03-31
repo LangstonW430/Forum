@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useEffect, useState } from "react";
 import type { User, AuthChangeEvent } from "@supabase/supabase-js";
+import ThemeToggle from "./ThemeToggle";
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
 
@@ -36,6 +37,7 @@ export default function Navbar() {
           Forum
         </Link>
         <div className="navbar-links">
+          <ThemeToggle />
           {user ? (
             <>
               <Link to="/new-post" className="btn btn-primary btn-sm">
