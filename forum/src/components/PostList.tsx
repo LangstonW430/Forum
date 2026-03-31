@@ -132,7 +132,7 @@ export default function PostList() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Forum Posts</h1>
+        <h1 className="page-title">Exbo</h1>
         <p className="page-subtitle">
           Join the discussion and share your thoughts
         </p>

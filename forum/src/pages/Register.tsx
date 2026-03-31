@@ -70,7 +70,7 @@ export default function Register() {
     <div className="auth-container">
       <div className="auth-card">
         <h1 className="auth-title">Create Account</h1>
-        <p className="auth-subtitle">Join the forum community</p>
+        <p className="auth-subtitle">Join the Exbo community</p>
         {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={handleRegister} className="auth-form">
           <div className="form-group">
