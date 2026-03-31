@@ -7,6 +7,7 @@ import NewPostPage from "./pages/NewPostPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { Analytics } from "@vercel/analytics/react";
 import "./App.css";
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
           </main>
         </div>
       </Router>
+      <Analytics />
     </ThemeProvider>
   );
 }
