@@ -1,73 +1,92 @@
-# React + TypeScript + Vite
+# Forum App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern web-based forum application built with React, TypeScript, and Vite. This project allows users to create accounts, post topics, comment on posts, and vote on content.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **User Authentication**: Secure login and registration system
+- **Post Management**: Create, view, and manage forum posts
+- **Commenting System**: Add comments to posts with threaded discussions
+- **Voting System**: Upvote and downvote posts and comments
+- **Theme Toggle**: Switch between light and dark themes
+- **Responsive Design**: Optimized for desktop and mobile devices
+- **Protected Routes**: Secure access to authenticated features
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend Framework**: React with TypeScript
+- **Build Tool**: Vite
+- **Styling**: Custom CSS with theme support
+- **Database**: Supabase (PostgreSQL with real-time capabilities)
+- **Hosting**: Vercel
 
-## Expanding the ESLint configuration
+## Live Demo
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Visit the live application at: [https://forum-chi-eight.vercel.app/](https://forum-chi-eight.vercel.app/)
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Database Schema
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+The database schema is defined in `schema.sql` and includes the following tables:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- `users`: User account information
+- `posts`: Forum posts with titles and content
+- `comments`: Comments on posts
+- `votes`: User votes on posts and comments
+
+## Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+│   ├── CommentItem.tsx
+│   ├── CommentList.tsx
+│   ├── Navbar.tsx
+│   ├── NewCommentForm.tsx
+│   ├── NewPostForm.tsx
+│   ├── PostDetail.tsx
+│   ├── PostList.tsx
+│   ├── ProtectedRoute.tsx
+│   ├── ThemeToggle.tsx
+│   └── VoteButtons.tsx
+├── contexts/            # React contexts
+│   └── ThemeContext.tsx
+├── lib/                 # Library configurations
+│   └── supabase.ts
+├── pages/               # Page components
+│   ├── Home.tsx
+│   ├── Login.tsx
+│   ├── NewPostPage.tsx
+│   ├── PostDetailPage.tsx
+│   └── Register.tsx
+├── types/               # TypeScript type definitions
+│   └── index.ts
+└── utils/               # Utility functions
+    └── supabase.ts
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Available Scripts
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- `npm run dev`: Start the development server
+- `npm run build`: Build the project for production
+- `npm run preview`: Preview the production build locally
+- `npm run lint`: Run ESLint for code quality checks
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Deployment
+
+This application is hosted on Vercel. To deploy your own version:
+
+1. Connect your GitHub repository to Vercel
+2. Add the environment variables in the Vercel dashboard
+3. Deploy automatically on push to main branch
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make your changes and commit: `git commit -m 'Add feature'`
+4. Push to the branch: `git push origin feature-name`
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
