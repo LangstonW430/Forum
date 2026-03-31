@@ -38,6 +38,9 @@ export default function Navbar() {
         <div className="navbar-links">
           {user ? (
             <>
+              <Link to="/new-post" className="btn btn-primary btn-sm">
+                New Post
+              </Link>
               <span className="navbar-user">Welcome, {user.email}</span>
               <button
                 onClick={handleLogout}
