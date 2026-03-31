@@ -34,7 +34,6 @@ export default function Register() {
         data: {
           username: username,
         },
-        emailRedirectTo: "http://localhost:3000/dashboard",
       },
     });
 
