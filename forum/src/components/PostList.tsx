@@ -8,13 +8,37 @@ export default function PostList() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const handlePostVote = (postId: string, newVoteCount: number, newUserVote: number | null) => {
+  // Test Supabase connection on mount
+  useEffect(() => {
+    const testConnection = async () => {
+      try {
+        console.log("Testing Supabase connection...");
+        const { error } = await supabase.from("posts").select("count").limit(1);
+        if (error) {
+          console.error("Supabase connection error:", error);
+          alert("Database connection issue. Please check your Supabase setup.");
+        } else {
+          console.log("Supabase connection successful");
+        }
+      } catch (err) {
+        console.error("Connection test failed:", err);
+      }
+    };
+
+    testConnection();
+  }, []);
+
+  const handlePostVote = (
+    postId: string,
+    newVoteCount: number,
+    newUserVote: number | null,
+  ) => {
     setPosts((prevPosts) =>
       prevPosts.map((post) =>
         post.id === postId
           ? { ...post, vote_count: newVoteCount, user_vote: newUserVote }
-          : post
-      )
+          : post,
+      ),
     );
   };
 
@@ -51,9 +75,11 @@ export default function PostList() {
   }, []);
 
   const fetchPosts = async () => {
+    console.log("Fetching posts...");
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    console.log("Current user:", user);
 
     const { data, error } = await supabase
       .from("posts")
@@ -73,13 +99,19 @@ export default function PostList() {
 
     if (error) {
       console.error("Error fetching posts:", error);
+      alert(`Error fetching posts: ${error.message}`);
     } else {
+      console.log("Posts fetched successfully:", data);
       // Calculate vote counts and user votes for each post
       const postsWithVotes = (data || []).map((post) => {
         const votes = post.post_votes || [];
-        const voteCount = votes.reduce((sum: number, vote: any) => sum + vote.vote_type, 0);
+        const voteCount = votes.reduce(
+          (sum: number, vote: any) => sum + vote.vote_type,
+          0,
+        );
         const userVote = user
-          ? votes.find((vote: any) => vote.user_id === user.id)?.vote_type || null
+          ? votes.find((vote: any) => vote.user_id === user.id)?.vote_type ||
+            null
           : null;
 
         return {
@@ -89,6 +121,7 @@ export default function PostList() {
         };
       });
 
+      console.log("Posts with votes:", postsWithVotes);
       setPosts(postsWithVotes);
     }
     setLoading(false);

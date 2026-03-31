@@ -13,21 +13,33 @@ export default function Register() {
     e.preventDefault();
     setLoading(true);
 
+    // Basic username validation
+    if (username.length < 3) {
+      alert("Username must be at least 3 characters long");
+      setLoading(false);
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      alert("Username can only contain letters, numbers, and underscores");
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          username: username,
+        },
+      },
     });
 
     if (error) {
       alert(error.message);
     } else {
-      // After signup, update the profile with username
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        await supabase.from("profiles").update({ username }).eq("id", user.id);
-      }
+      // Profile will be created automatically by the trigger with the correct username
       navigate("/");
     }
     setLoading(false);

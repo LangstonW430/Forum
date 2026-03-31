@@ -2,14 +2,14 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Profiles table
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Posts table
-CREATE TABLE posts (
+CREATE TABLE IF NOT EXISTS posts (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   title TEXT NOT NULL,
   content TEXT NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE posts (
 );
 
 -- Comments table
-CREATE TABLE comments (
+CREATE TABLE IF NOT EXISTS comments (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   content TEXT NOT NULL,
   post_id UUID REFERENCES posts(id) ON DELETE CASCADE NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE comments (
 );
 
 -- Post votes table
-CREATE TABLE post_votes (
+CREATE TABLE IF NOT EXISTS post_votes (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   post_id UUID REFERENCES posts(id) ON DELETE CASCADE NOT NULL,
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE post_votes (
 );
 
 -- Comment votes table
-CREATE TABLE comment_votes (
+CREATE TABLE IF NOT EXISTS comment_votes (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   comment_id UUID REFERENCES comments(id) ON DELETE CASCADE NOT NULL,
   user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
@@ -47,17 +47,28 @@ CREATE TABLE comment_votes (
   UNIQUE(comment_id, user_id) -- One vote per user per comment
 );
 
--- Enable Row Level Security
+-- Enable Row Level Security (safe to run multiple times)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE post_votes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE comment_votes ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist, then create new ones
+DROP POLICY IF EXISTS "Users can view all profiles" ON profiles;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
+
 -- Policies for profiles
 CREATE POLICY "Users can view all profiles" ON profiles FOR SELECT USING (true);
 CREATE POLICY "Users can insert their own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update their own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+
+-- Drop existing policies for posts
+DROP POLICY IF EXISTS "Anyone can view posts" ON posts;
+DROP POLICY IF EXISTS "Authenticated users can create posts" ON posts;
+DROP POLICY IF EXISTS "Users can update their own posts" ON posts;
+DROP POLICY IF EXISTS "Users can delete their own posts" ON posts;
 
 -- Policies for posts
 CREATE POLICY "Anyone can view posts" ON posts FOR SELECT USING (true);
@@ -65,11 +76,23 @@ CREATE POLICY "Authenticated users can create posts" ON posts FOR INSERT WITH CH
 CREATE POLICY "Users can update their own posts" ON posts FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own posts" ON posts FOR DELETE USING (auth.uid() = user_id);
 
+-- Drop existing policies for comments
+DROP POLICY IF EXISTS "Anyone can view comments" ON comments;
+DROP POLICY IF EXISTS "Authenticated users can create comments" ON comments;
+DROP POLICY IF EXISTS "Users can update their own comments" ON comments;
+DROP POLICY IF EXISTS "Users can delete their own comments" ON comments;
+
 -- Policies for comments
 CREATE POLICY "Anyone can view comments" ON comments FOR SELECT USING (true);
 CREATE POLICY "Authenticated users can create comments" ON comments FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update their own comments" ON comments FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own comments" ON comments FOR DELETE USING (auth.uid() = user_id);
+
+-- Drop existing policies for post votes
+DROP POLICY IF EXISTS "Anyone can view post votes" ON post_votes;
+DROP POLICY IF EXISTS "Authenticated users can vote on posts" ON post_votes;
+DROP POLICY IF EXISTS "Users can update their own post votes" ON post_votes;
+DROP POLICY IF EXISTS "Users can delete their own post votes" ON post_votes;
 
 -- Policies for post votes
 CREATE POLICY "Anyone can view post votes" ON post_votes FOR SELECT USING (true);
@@ -77,23 +100,35 @@ CREATE POLICY "Authenticated users can vote on posts" ON post_votes FOR INSERT W
 CREATE POLICY "Users can update their own post votes" ON post_votes FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own post votes" ON post_votes FOR DELETE USING (auth.uid() = user_id);
 
+-- Drop existing policies for comment votes
+DROP POLICY IF EXISTS "Anyone can view comment votes" ON comment_votes;
+DROP POLICY IF EXISTS "Authenticated users can vote on comments" ON comment_votes;
+DROP POLICY IF EXISTS "Users can update their own comment votes" ON comment_votes;
+DROP POLICY IF EXISTS "Users can delete their own comment votes" ON comment_votes;
+
 -- Policies for comment votes
 CREATE POLICY "Anyone can view comment votes" ON comment_votes FOR SELECT USING (true);
 CREATE POLICY "Authenticated users can vote on comments" ON comment_votes FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update their own comment votes" ON comment_votes FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own comment votes" ON comment_votes FOR DELETE USING (auth.uid() = user_id);
 
--- Function to handle new user signup
+-- Function to handle new user signup (CREATE OR REPLACE is already used)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  user_username TEXT;
 BEGIN
+  -- Check if username was provided in metadata, otherwise use email prefix
+  user_username := COALESCE(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1));
+
   INSERT INTO public.profiles (id, username)
-  VALUES (new.id, new.email); -- Use email as initial username, can be changed later
+  VALUES (new.id, user_username);
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger to create profile on signup
+-- Drop existing trigger if it exists, then create new one
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();

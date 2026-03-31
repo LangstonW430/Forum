@@ -22,7 +22,11 @@ export default function PostDetail() {
     }
   };
 
-  const handleCommentVote = (commentId: string, newVoteCount: number, newUserVote: number | null) => {
+  const handleCommentVote = (
+    commentId: string,
+    newVoteCount: number,
+    newUserVote: number | null,
+  ) => {
     const updateCommentVotes = (comments: Comment[]): Comment[] => {
       return comments.map((comment) => {
         if (comment.id === commentId) {
@@ -132,7 +136,10 @@ export default function PostDetail() {
     } else {
       // Calculate vote count and user vote
       const votes = data.post_votes || [];
-      const voteCount = votes.reduce((sum: number, vote: any) => sum + vote.vote_type, 0);
+      const voteCount = votes.reduce(
+        (sum: number, vote: any) => sum + vote.vote_type,
+        0,
+      );
       const userVote = user
         ? votes.find((vote: any) => vote.user_id === user.id)?.vote_type || null
         : null;
@@ -173,9 +180,13 @@ export default function PostDetail() {
       // Calculate vote counts and user votes for each comment
       const commentsWithVotes = (data || []).map((comment) => {
         const votes = comment.comment_votes || [];
-        const voteCount = votes.reduce((sum: number, vote: any) => sum + vote.vote_type, 0);
+        const voteCount = votes.reduce(
+          (sum: number, vote: any) => sum + vote.vote_type,
+          0,
+        );
         const userVote = user
-          ? votes.find((vote: any) => vote.user_id === user.id)?.vote_type || null
+          ? votes.find((vote: any) => vote.user_id === user.id)?.vote_type ||
+            null
           : null;
 
         return {

@@ -4,10 +4,18 @@ import CommentItem from "./CommentItem";
 interface CommentListProps {
   comments: Comment[];
   onReply: () => void;
-  onVoteUpdate: (commentId: string, newVoteCount: number, newUserVote: number | null) => void;
+  onVoteUpdate: (
+    commentId: string,
+    newVoteCount: number,
+    newUserVote: number | null,
+  ) => void;
 }
 
-export default function CommentList({ comments, onReply, onVoteUpdate }: CommentListProps) {
+export default function CommentList({
+  comments,
+  onReply,
+  onVoteUpdate,
+}: CommentListProps) {
   return (
     <div>
       {comments.map((comment) => (

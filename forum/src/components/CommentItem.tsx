@@ -6,10 +6,18 @@ import VoteButtons from "./VoteButtons";
 interface CommentItemProps {
   comment: Comment;
   onReply: () => void;
-  onVoteUpdate: (commentId: string, newVoteCount: number, newUserVote: number | null) => void;
+  onVoteUpdate: (
+    commentId: string,
+    newVoteCount: number,
+    newUserVote: number | null,
+  ) => void;
 }
 
-export default function CommentItem({ comment, onReply, onVoteUpdate }: CommentItemProps) {
+export default function CommentItem({
+  comment,
+  onReply,
+  onVoteUpdate,
+}: CommentItemProps) {
   const [showReplyForm, setShowReplyForm] = useState(false);
 
   return (

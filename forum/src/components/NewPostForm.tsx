@@ -12,26 +12,82 @@ export default function NewPostForm() {
     e.preventDefault();
     setLoading(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      alert("You must be logged in to create a post");
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        console.error("Auth error:", userError);
+        alert(`Authentication error: ${userError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      if (!user) {
+        alert("You must be logged in to create a post");
+        setLoading(false);
+        return;
+      }
+
+      console.log("Creating post for user:", user.id);
+
+      // Check if user has a profile
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError) {
+        console.error("Profile check error:", profileError);
+        if (profileError.code === "PGRST116") {
+          // Profile doesn't exist, try to create it
+          console.log("Profile not found, creating one...");
+          const username =
+            user.user_metadata?.username ||
+            (user.email ? user.email.split("@")[0] : "user");
+          const { error: createProfileError } = await supabase
+            .from("profiles")
+            .insert([{ id: user.id, username }]);
+
+          if (createProfileError) {
+            console.error("Error creating profile:", createProfileError);
+            alert(
+              `Failed to create user profile: ${createProfileError.message}`,
+            );
+            setLoading(false);
+            return;
+          }
+        } else {
+          alert(`Profile error: ${profileError.message}`);
+          setLoading(false);
+          return;
+        }
+      }
+
+      console.log("Profile found:", profile);
+
+      const { error } = await supabase
+        .from("posts")
+        .insert([{ ...form, user_id: user.id }]);
+
+      if (error) {
+        console.error("Error creating post:", error);
+        alert(
+          `Error creating post: ${error.message}\n\nDetails: ${JSON.stringify(error, null, 2)}`,
+        );
+      } else {
+        console.log("Post created successfully");
+        navigate("/");
+      }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      alert(`Unexpected error: ${err}`);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { error } = await supabase
-      .from("posts")
-      .insert([{ ...form, user_id: user.id }]);
-
-    if (error) {
-      console.error("Error creating post:", error);
-      alert("Error creating post");
-    } else {
-      navigate("/");
-    }
-    setLoading(false);
   };
 
   return (
