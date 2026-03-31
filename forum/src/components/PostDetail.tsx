@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import type { Post, Comment } from "../types";
@@ -36,6 +36,11 @@ export default function PostDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
+  const [editMediaUrls, setEditMediaUrls] = useState<string[]>([]);
+  const [editNewFiles, setEditNewFiles] = useState<File[]>([]);
+  const [editNewPreviews, setEditNewPreviews] = useState<string[]>([]);
+  const [editSaving, setEditSaving] = useState(false);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePostVote = (newVoteCount: number, newUserVote: number | null) => {
     if (post) {
@@ -78,40 +83,91 @@ export default function PostDetail() {
     if (post) {
       setEditTitle(post.title);
       setEditContent(post.content);
+      setEditMediaUrls(post.media_urls ?? []);
+      setEditNewFiles([]);
+      setEditNewPreviews([]);
       setIsEditing(true);
     }
   };
 
+  const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(e.target.files || []);
+    if (selected.length === 0) return;
+    const combined = [...editNewFiles, ...selected].slice(
+      0,
+      Math.max(0, 5 - editMediaUrls.length),
+    );
+    editNewPreviews.forEach((p) => URL.revokeObjectURL(p));
+    setEditNewFiles(combined);
+    setEditNewPreviews(combined.map((f) => URL.createObjectURL(f)));
+    e.target.value = "";
+  };
+
   const handleSaveEdit = async () => {
     if (!post || !editTitle.trim() || !editContent.trim()) return;
+    setEditSaving(true);
 
-    const { error } = await supabase
-      .from("posts")
-      .update({
-        title: editTitle.trim(),
-        content: editContent.trim(),
-        edited_at: new Date().toISOString(),
-      })
-      .eq("id", post.id);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (error) {
-      console.error("Error updating post:", error);
-      alert(`Failed to update post: ${error.message}`);
-    } else {
-      setPost({
-        ...post,
-        title: editTitle.trim(),
-        content: editContent.trim(),
-        edited_at: new Date().toISOString(),
-      });
-      setIsEditing(false);
+      // Upload any new files
+      const uploadedUrls: string[] = [];
+      for (const file of editNewFiles) {
+        const ext = file.name.split(".").pop();
+        const path = `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("post-media")
+          .upload(path, file, { cacheControl: "3600", upsert: false });
+        if (uploadError) {
+          alert(`Failed to upload ${file.name}: ${uploadError.message}`);
+          return;
+        }
+        const { data: urlData } = supabase.storage
+          .from("post-media")
+          .getPublicUrl(path);
+        uploadedUrls.push(urlData.publicUrl);
+      }
+
+      const finalMediaUrls = [...editMediaUrls, ...uploadedUrls];
+
+      const { error } = await supabase
+        .from("posts")
+        .update({
+          title: editTitle.trim(),
+          content: editContent.trim(),
+          media_urls: finalMediaUrls.length > 0 ? finalMediaUrls : null,
+          edited_at: new Date().toISOString(),
+        })
+        .eq("id", post.id);
+
+      if (error) {
+        alert(`Failed to update post: ${error.message}`);
+      } else {
+        editNewPreviews.forEach((p) => URL.revokeObjectURL(p));
+        setPost({
+          ...post,
+          title: editTitle.trim(),
+          content: editContent.trim(),
+          media_urls: finalMediaUrls.length > 0 ? finalMediaUrls : null,
+          edited_at: new Date().toISOString(),
+        });
+        setIsEditing(false);
+      }
+    } finally {
+      setEditSaving(false);
     }
   };
 
   const handleCancelEdit = () => {
+    editNewPreviews.forEach((p) => URL.revokeObjectURL(p));
     setIsEditing(false);
     setEditTitle("");
     setEditContent("");
+    setEditMediaUrls([]);
+    setEditNewFiles([]);
+    setEditNewPreviews([]);
   };
 
   const handleDeletePost = async () => {
@@ -338,15 +394,87 @@ export default function PostDetail() {
                   placeholder="Post content"
                   rows={6}
                 />
+                {/* Existing media */}
+                {editMediaUrls.length > 0 && (
+                  <div className="media-preview-grid">
+                    {editMediaUrls.map((url, i) => (
+                      <div key={url} className="media-preview-item">
+                        {/\.(mp4|webm|ogg|mov|avi)(\?|$)/i.test(url) ? (
+                          <video src={url} className="media-preview-media" />
+                        ) : (
+                          <img src={url} alt="" className="media-preview-media" />
+                        )}
+                        <button
+                          type="button"
+                          className="media-preview-remove"
+                          onClick={() =>
+                            setEditMediaUrls(editMediaUrls.filter((_, j) => j !== i))
+                          }
+                          aria-label="Remove"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* New file previews */}
+                {editNewPreviews.length > 0 && (
+                  <div className="media-preview-grid">
+                    {editNewPreviews.map((src, i) => (
+                      <div key={i} className="media-preview-item">
+                        {editNewFiles[i].type.startsWith("video/") ? (
+                          <video src={src} className="media-preview-media" />
+                        ) : (
+                          <img src={src} alt="" className="media-preview-media" />
+                        )}
+                        <button
+                          type="button"
+                          className="media-preview-remove"
+                          onClick={() => {
+                            URL.revokeObjectURL(src);
+                            setEditNewFiles(editNewFiles.filter((_, j) => j !== i));
+                            setEditNewPreviews(editNewPreviews.filter((_, j) => j !== i));
+                          }}
+                          aria-label="Remove"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Add more media */}
+                {editMediaUrls.length + editNewFiles.length < 5 && (
+                  <>
+                    <div
+                      className="file-upload-area file-upload-area--compact"
+                      onClick={() => editFileInputRef.current?.click()}
+                    >
+                      <span className="file-upload-icon">+</span>
+                      <span className="file-upload-text">Add images or videos</span>
+                    </div>
+                    <input
+                      ref={editFileInputRef}
+                      type="file"
+                      accept="image/*,video/*"
+                      multiple
+                      onChange={handleEditFileChange}
+                      style={{ display: "none" }}
+                    />
+                  </>
+                )}
                 <div className="edit-actions">
                   <button
                     onClick={handleSaveEdit}
+                    disabled={editSaving}
                     className="btn btn-primary btn-sm"
                   >
-                    Save
+                    {editSaving ? "Saving..." : "Save"}
                   </button>
                   <button
                     onClick={handleCancelEdit}
+                    disabled={editSaving}
                     className="btn btn-outline btn-sm"
                   >
                     Cancel
@@ -357,6 +485,27 @@ export default function PostDetail() {
               <>
                 <h1 className="post-title">{post.title}</h1>
                 <p className="post-content">{post.content}</p>
+                {post.media_urls && post.media_urls.length > 0 && (
+                  <div className="post-media-gallery">
+                    {post.media_urls.map((url, i) =>
+                      /\.(mp4|webm|ogg|mov|avi)(\?|$)/i.test(url) ? (
+                        <video
+                          key={i}
+                          src={url}
+                          controls
+                          className="post-media-item"
+                        />
+                      ) : (
+                        <img
+                          key={i}
+                          src={url}
+                          alt=""
+                          className="post-media-item"
+                        />
+                      )
+                    )}
+                  </div>
+                )}
                 <div className="post-meta">
                   By{" "}
                   <Link

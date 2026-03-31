@@ -12,6 +12,7 @@ export interface Post {
   user_id: string;
   created_at: string;
   edited_at?: string | null;
+  media_urls?: string[] | null;
   profiles?: Profile; // For joined queries
   vote_count?: number; // Total upvotes minus downvotes
   user_vote?: number | null; // User's vote: 1 (up), -1 (down), or null (no vote)
@@ -50,6 +51,7 @@ export interface CommentVote {
 export interface NewPost {
   title: string;
   content: string;
+  media_urls?: string[];
 }
 
 export interface NewComment {

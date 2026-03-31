@@ -5,6 +5,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
 ALTER TABLE comments ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
 
+-- Add media_urls column for image/video uploads
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_urls TEXT[];
+
 -- Profiles table
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
@@ -142,3 +145,26 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- ── Storage: post-media bucket ──────────────────────────────────────────────
+-- Run this in the Supabase SQL editor AFTER creating the "post-media" bucket
+-- in Storage → New bucket (set to Public).
+
+-- Allow anyone to read files from the bucket
+DROP POLICY IF EXISTS "Public read post-media" ON storage.objects;
+CREATE POLICY "Public read post-media" ON storage.objects
+  FOR SELECT USING (bucket_id = 'post-media');
+
+-- Allow authenticated users to upload files
+DROP POLICY IF EXISTS "Auth users upload post-media" ON storage.objects;
+CREATE POLICY "Auth users upload post-media" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'post-media' AND auth.role() = 'authenticated'
+  );
+
+-- Allow users to delete their own uploads (path starts with their user id)
+DROP POLICY IF EXISTS "Users delete own post-media" ON storage.objects;
+CREATE POLICY "Users delete own post-media" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'post-media' AND (storage.foldername(name))[1] = auth.uid()::text
+  );

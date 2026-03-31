@@ -172,6 +172,29 @@ export default function PostList() {
                       ? `${post.content.substring(0, 200)}...`
                       : post.content}
                   </p>
+                  {post.media_urls && post.media_urls.length > 0 && (
+                    <div className="post-list-thumbnails">
+                      {post.media_urls.slice(0, 3).map((url, i) =>
+                        /\.(mp4|webm|ogg|mov|avi)(\?|$)/i.test(url) ? (
+                          <div key={i} className="post-list-thumb post-list-thumb-video">
+                            ▶
+                          </div>
+                        ) : (
+                          <img
+                            key={i}
+                            src={url}
+                            alt=""
+                            className="post-list-thumb"
+                          />
+                        )
+                      )}
+                      {post.media_urls.length > 3 && (
+                        <div className="post-list-thumb post-list-thumb-more">
+                          +{post.media_urls.length - 3}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="post-meta">
                     By{" "}
                     <Link
