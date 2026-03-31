@@ -6,6 +6,7 @@ import PostDetailPage from "./pages/PostDetailPage";
 import NewPostPage from "./pages/NewPostPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ProfilePage from "./pages/ProfilePage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { Analytics } from "@vercel/analytics/react";
 import "./App.css";
@@ -30,6 +31,14 @@ function App() {
               />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
           </main>
         </div>

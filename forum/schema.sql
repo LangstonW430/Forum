@@ -9,8 +9,12 @@ ALTER TABLE comments ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
+  bio TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add bio column if upgrading an existing database
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT;
 
 -- Posts table
 CREATE TABLE IF NOT EXISTS posts (
