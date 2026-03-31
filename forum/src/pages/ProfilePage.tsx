@@ -1,17 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import type { User } from "@supabase/supabase-js";
+import Avatar from "../components/Avatar";
+import AvatarCropModal from "../components/AvatarCropModal";
+import { getCroppedBlob } from "../utils/cropImage";
+import type { Area } from "react-easy-crop";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -23,13 +31,14 @@ export default function ProfilePage() {
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("username, bio")
+          .select("username, bio, avatar_url")
           .eq("id", user.id)
           .single();
 
         if (profile) {
           setUsername(profile.username || "");
           setBio(profile.bio || "");
+          setAvatarUrl(profile.avatar_url || null);
         }
       }
       setLoading(false);
@@ -37,6 +46,67 @@ export default function ProfilePage() {
 
     loadProfile();
   }, []);
+
+  // When user picks a file, open the crop modal instead of uploading directly
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setCropSrc(objectUrl);
+    e.target.value = "";
+  };
+
+  const handleCropCancel = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+  };
+
+  const handleCropSave = async (croppedAreaPixels: Area) => {
+    if (!cropSrc || !user) return;
+    setAvatarUploading(true);
+    setMessage(null);
+
+    try {
+      const blob = await getCroppedBlob(cropSrc, croppedAreaPixels);
+      const path = `${user.id}/avatar.jpg`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, blob, {
+          contentType: "image/jpeg",
+          cacheControl: "3600",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        setMessage({ type: "error", text: `Upload failed: ${uploadError.message}` });
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(path);
+
+      // Cache-bust so the updated image loads immediately
+      const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: publicUrl })
+        .eq("id", user.id);
+
+      if (updateError) {
+        setMessage({ type: "error", text: `Failed to save avatar: ${updateError.message}` });
+      } else {
+        URL.revokeObjectURL(cropSrc);
+        setCropSrc(null);
+        setAvatarUrl(publicUrl);
+        setMessage({ type: "success", text: "Profile picture updated!" });
+      }
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,70 +147,93 @@ export default function ProfilePage() {
   if (loading) return <div className="loading">Loading profile...</div>;
 
   return (
-    <div className="profile-container">
-      <div className="profile-header">
-        <h1 className="page-title">Your Profile</h1>
-        <p className="page-subtitle">Manage your username and bio</p>
-      </div>
+    <>
+      {cropSrc && (
+        <AvatarCropModal
+          imageSrc={cropSrc}
+          onSave={handleCropSave}
+          onCancel={handleCropCancel}
+          saving={avatarUploading}
+        />
+      )}
 
-      <div className="profile-card">
-        <div className="profile-avatar">
-          {username ? username[0].toUpperCase() : "?"}
+      <div className="profile-container">
+        <div className="profile-header">
+          <h1 className="page-title">Your Profile</h1>
+          <p className="page-subtitle">Manage your username and bio</p>
         </div>
 
-        {message && (
-          <div className={`alert alert-${message.type}`}>{message.text}</div>
-        )}
-
-        <form onSubmit={handleSave} className="profile-form">
-          <div className="form-group">
-            <label className="form-label">Username</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              className="form-input"
-              placeholder="Your username"
-            />
-            <p className="form-hint">
-              Displayed on your posts and comments instead of your email.
-            </p>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Bio</label>
-            <textarea
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              className="form-input form-textarea"
-              placeholder="Tell the community a bit about yourself..."
-              rows={4}
-              maxLength={500}
-            />
-            <p className="form-hint">{bio.length}/500 characters</p>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Email</label>
-            <input
-              type="email"
-              value={user?.email || ""}
-              disabled
-              className="form-input profile-email-input"
-            />
-            <p className="form-hint">Email cannot be changed.</p>
-          </div>
-
-          <button
-            type="submit"
-            disabled={saving}
-            className="btn btn-primary profile-save-btn"
+        <div className="profile-card">
+          <div
+            className="profile-avatar-wrapper"
+            onClick={() => avatarInputRef.current?.click()}
+            title="Click to change profile picture"
           >
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
-        </form>
+            <Avatar username={username} avatarUrl={avatarUrl} size="lg" />
+            <div className="profile-avatar-overlay">Change</div>
+          </div>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileSelected}
+            style={{ display: "none" }}
+          />
+
+          {message && (
+            <div className={`alert alert-${message.type}`}>{message.text}</div>
+          )}
+
+          <form onSubmit={handleSave} className="profile-form">
+            <div className="form-group">
+              <label className="form-label">Username</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                className="form-input"
+                placeholder="Your username"
+              />
+              <p className="form-hint">
+                Displayed on your posts and comments instead of your email.
+              </p>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Bio</label>
+              <textarea
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                className="form-input form-textarea"
+                placeholder="Tell the community a bit about yourself..."
+                rows={4}
+                maxLength={500}
+              />
+              <p className="form-hint">{bio.length}/500 characters</p>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Email</label>
+              <input
+                type="email"
+                value={user?.email || ""}
+                disabled
+                className="form-input profile-email-input"
+              />
+              <p className="form-hint">Email cannot be changed.</p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="btn btn-primary profile-save-btn"
+            >
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
+          </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

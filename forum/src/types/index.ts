@@ -2,6 +2,7 @@ export interface Profile {
   id: string;
   username: string;
   bio?: string | null;
+  avatar_url?: string | null;
   created_at: string;
 }
 
@@ -16,6 +17,7 @@ export interface Post {
   profiles?: Profile; // For joined queries
   vote_count?: number; // Total upvotes minus downvotes
   user_vote?: number | null; // User's vote: 1 (up), -1 (down), or null (no vote)
+  comment_count?: number;
 }
 
 export interface Comment {

@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import type { Comment } from "../types";
 import NewCommentForm from "./NewCommentForm";
 import VoteButtons from "./VoteButtons";
+import Avatar from "./Avatar";
 
 interface CommentItemProps {
   comment: Comment;
@@ -127,6 +128,11 @@ export default function CommentItem({
             <>
               <div className="comment-text">{comment.content}</div>
               <div className="comment-meta">
+                <Avatar
+                  username={comment.profiles?.username || ""}
+                  avatarUrl={comment.profiles?.avatar_url}
+                  size="sm"
+                />
                 By{" "}
                 <Link
                   to={`/user/${comment.profiles?.username}`}

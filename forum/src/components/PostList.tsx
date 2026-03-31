@@ -2,11 +2,42 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import VoteButtons from "./VoteButtons";
+import Avatar from "./Avatar";
 import type { Post } from "../types";
+
+type SortOrder = "newest" | "oldest" | "popular" | "trending";
+
+const SORT_OPTIONS: { value: SortOrder; label: string }[] = [
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
+  { value: "popular", label: "Popular" },
+  { value: "trending", label: "Trending" },
+];
+
+function hotScore(post: Post): number {
+  const votes = post.vote_count ?? 0;
+  const hoursAgo =
+    (Date.now() - new Date(post.created_at).getTime()) / 3_600_000;
+  return votes / Math.pow(hoursAgo + 2, 1.5);
+}
+
+function sortPosts(posts: Post[], order: SortOrder): Post[] {
+  return [...posts].sort((a, b) => {
+    if (order === "newest")
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    if (order === "oldest")
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    if (order === "popular")
+      return (b.vote_count ?? 0) - (a.vote_count ?? 0);
+    // trending
+    return hotScore(b) - hotScore(a);
+  });
+}
 
 export default function PostList() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
 
   // Test Supabase connection on mount
   useEffect(() => {
@@ -87,12 +118,14 @@ export default function PostList() {
         `
         *,
         profiles (
-          username
+          username,
+          avatar_url
         ),
         post_votes (
           vote_type,
           user_id
-        )
+        ),
+        comments (count)
       `,
       )
       .order("created_at", { ascending: false });
@@ -114,10 +147,13 @@ export default function PostList() {
             null
           : null;
 
+        const commentCount = (post.comments as { count: number }[])?.[0]?.count ?? 0;
+
         return {
           ...post,
           vote_count: voteCount,
           user_vote: userVote,
+          comment_count: commentCount,
         };
       });
 
@@ -141,6 +177,18 @@ export default function PostList() {
         </Link>
       </div>
 
+      <div className="sort-tabs">
+        {SORT_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            className={`sort-tab${sortOrder === opt.value ? " sort-tab--active" : ""}`}
+            onClick={() => setSortOrder(opt.value)}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       {posts.length === 0 ? (
         <div className="empty-state">
           <h3>No posts yet</h3>
@@ -151,7 +199,7 @@ export default function PostList() {
         </div>
       ) : (
         <div className="posts-list">
-          {posts.map((post) => (
+          {sortPosts(posts, sortOrder).map((post) => (
             <div key={post.id} className="card post-card">
               <div className="post-content-wrapper">
                 <VoteButtons
@@ -196,6 +244,11 @@ export default function PostList() {
                     </div>
                   )}
                   <div className="post-meta">
+                    <Avatar
+                      username={post.profiles?.username || ""}
+                      avatarUrl={post.profiles?.avatar_url}
+                      size="sm"
+                    />
                     By{" "}
                     <Link
                       to={`/user/${post.profiles?.username}`}
@@ -210,6 +263,11 @@ export default function PostList() {
                         • Edited {new Date(post.edited_at).toLocaleDateString()}
                       </span>
                     )}
+                    <Link to={`/post/${post.id}`} className="post-comment-count">
+                      •{" "}
+                      {post.comment_count ?? 0}{" "}
+                      {post.comment_count === 1 ? "comment" : "comments"}
+                    </Link>
                   </div>
                 </div>
               </div>

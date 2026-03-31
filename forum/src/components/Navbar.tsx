@@ -3,18 +3,21 @@ import { supabase } from "../lib/supabase";
 import { useEffect, useState } from "react";
 import type { User, AuthChangeEvent } from "@supabase/supabase-js";
 import ThemeToggle from "./ThemeToggle";
+import Avatar from "./Avatar";
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const [username, setUsername] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  const fetchUsername = async (userId: string) => {
+  const fetchProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("username")
+      .select("username, avatar_url")
       .eq("id", userId)
       .single();
     setUsername(data?.username ?? null);
+    setAvatarUrl(data?.avatar_url ?? null);
   };
 
   useEffect(() => {
@@ -23,7 +26,7 @@ export default function Navbar() {
         data: { user },
       } = await supabase.auth.getUser();
       setUser(user);
-      if (user) fetchUsername(user.id);
+      if (user) fetchProfile(user.id);
     };
     getUser();
 
@@ -31,7 +34,7 @@ export default function Navbar() {
       (_event: AuthChangeEvent, session) => {
         setUser(session?.user ?? null);
         if (session?.user) {
-          fetchUsername(session.user.id);
+          fetchProfile(session.user.id);
         } else {
           setUsername(null);
         }
@@ -61,6 +64,7 @@ export default function Navbar() {
                 New Post
               </Link>
               <Link to="/profile" className="navbar-user">
+                <Avatar username={username || ""} avatarUrl={avatarUrl} size="sm" />
                 {username || user.email}
               </Link>
               <button

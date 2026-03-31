@@ -5,6 +5,7 @@ import type { Post, Comment } from "../types";
 import CommentList from "./CommentList";
 import NewCommentForm from "./NewCommentForm";
 import VoteButtons from "./VoteButtons";
+import Avatar from "./Avatar";
 
 type SortOrder = "newest" | "oldest" | "top" | "bottom";
 
@@ -194,7 +195,8 @@ export default function PostDetail() {
         `
         *,
         profiles (
-          username
+          username,
+          avatar_url
         ),
         post_votes (
           vote_type,
@@ -237,7 +239,8 @@ export default function PostDetail() {
         `
         *,
         profiles (
-          username
+          username,
+          avatar_url
         ),
         comment_votes (
           vote_type,
@@ -507,6 +510,11 @@ export default function PostDetail() {
                   </div>
                 )}
                 <div className="post-meta">
+                  <Avatar
+                    username={post.profiles?.username || ""}
+                    avatarUrl={post.profiles?.avatar_url}
+                    size="sm"
+                  />
                   By{" "}
                   <Link
                     to={`/user/${post.profiles?.username}`}

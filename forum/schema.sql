@@ -8,6 +8,9 @@ ALTER TABLE comments ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
 -- Add media_urls column for image/video uploads
 ALTER TABLE posts ADD COLUMN IF NOT EXISTS media_urls TEXT[];
 
+-- Add avatar_url column for profile pictures
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
 -- Profiles table
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
@@ -167,4 +170,29 @@ DROP POLICY IF EXISTS "Users delete own post-media" ON storage.objects;
 CREATE POLICY "Users delete own post-media" ON storage.objects
   FOR DELETE USING (
     bucket_id = 'post-media' AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- ── Storage: avatars bucket ─────────────────────────────────────────────────
+-- Run AFTER creating the "avatars" bucket in Storage → New bucket (Public).
+
+DROP POLICY IF EXISTS "Public read avatars" ON storage.objects;
+CREATE POLICY "Public read avatars" ON storage.objects
+  FOR SELECT USING (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "Users upload own avatar" ON storage.objects;
+CREATE POLICY "Users upload own avatar" ON storage.objects
+  FOR INSERT WITH CHECK (
+    bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+DROP POLICY IF EXISTS "Users update own avatar" ON storage.objects;
+CREATE POLICY "Users update own avatar" ON storage.objects
+  FOR UPDATE USING (
+    bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]
+  );
+
+DROP POLICY IF EXISTS "Users delete own avatar" ON storage.objects;
+CREATE POLICY "Users delete own avatar" ON storage.objects
+  FOR DELETE USING (
+    bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]
   );

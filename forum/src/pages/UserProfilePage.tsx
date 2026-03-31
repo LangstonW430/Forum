@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import type { Post, Profile } from "../types";
+import Avatar from "../components/Avatar";
 
 export default function UserProfilePage() {
   const { username } = useParams<{ username: string }>();
@@ -14,7 +15,7 @@ export default function UserProfilePage() {
     const loadProfile = async () => {
       const { data: profileData, error } = await supabase
         .from("profiles")
-        .select("id, username, bio, created_at")
+        .select("id, username, bio, avatar_url, created_at")
         .eq("username", username)
         .single();
 
@@ -56,9 +57,7 @@ export default function UserProfilePage() {
   return (
     <div className="profile-container">
       <div className="profile-card">
-        <div className="profile-avatar">
-          {profile!.username[0].toUpperCase()}
-        </div>
+        <Avatar username={profile!.username} avatarUrl={profile!.avatar_url} size="lg" />
 
         <div className="user-profile-info">
           <h1 className="user-profile-username">{profile!.username}</h1>
