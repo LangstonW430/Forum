@@ -10,6 +10,7 @@ export interface Post {
   content: string;
   user_id: string;
   created_at: string;
+  edited_at?: string | null;
   profiles?: Profile; // For joined queries
   vote_count?: number; // Total upvotes minus downvotes
   user_vote?: number | null; // User's vote: 1 (up), -1 (down), or null (no vote)
@@ -22,6 +23,7 @@ export interface Comment {
   user_id: string;
   parent_comment_id: string | null;
   created_at: string;
+  edited_at?: string | null;
   profiles?: Profile; // For joined queries
   replies?: Comment[]; // For nested comments
   vote_count?: number; // Total upvotes minus downvotes

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import type { Post, Comment } from "../types";
 import CommentList from "./CommentList";
@@ -8,9 +8,14 @@ import VoteButtons from "./VoteButtons";
 
 export default function PostDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
 
   const handlePostVote = (newVoteCount: number, newUserVote: number | null) => {
     if (post) {
@@ -49,7 +54,69 @@ export default function PostDetail() {
     setComments(updateCommentVotes);
   };
 
+  const handleEditPost = () => {
+    if (post) {
+      setEditTitle(post.title);
+      setEditContent(post.content);
+      setIsEditing(true);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!post || !editTitle.trim() || !editContent.trim()) return;
+
+    const { error } = await supabase
+      .from("posts")
+      .update({
+        title: editTitle.trim(),
+        content: editContent.trim(),
+        edited_at: new Date().toISOString(),
+      })
+      .eq("id", post.id);
+
+    if (error) {
+      console.error("Error updating post:", error);
+      alert(`Failed to update post: ${error.message}`);
+    } else {
+      setPost({
+        ...post,
+        title: editTitle.trim(),
+        content: editContent.trim(),
+        edited_at: new Date().toISOString(),
+      });
+      setIsEditing(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditTitle("");
+    setEditContent("");
+  };
+
+  const handleDeletePost = async () => {
+    if (!post || !confirm("Are you sure you want to delete this post?")) return;
+
+    const { error } = await supabase.from("posts").delete().eq("id", post.id);
+
+    if (error) {
+      console.error("Error deleting post:", error);
+      alert("Failed to delete post");
+    } else {
+      navigate("/");
+    }
+  };
+
   useEffect(() => {
+    const getCurrentUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setCurrentUser(user?.id || null);
+    };
+
+    getCurrentUser();
+
     if (id) {
       fetchPost();
       fetchComments();
@@ -240,12 +307,69 @@ export default function PostDetail() {
             onVoteUpdate={handlePostVote}
           />
           <div className="post-content">
-            <h1 className="post-title">{post.title}</h1>
-            <p className="post-content">{post.content}</p>
-            <div className="post-meta">
-              By {post.profiles?.username} on{" "}
-              {new Date(post.created_at).toLocaleDateString()}
-            </div>
+            {isEditing ? (
+              <div className="edit-form">
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="edit-title-input"
+                  placeholder="Post title"
+                />
+                <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="edit-content-input"
+                  placeholder="Post content"
+                  rows={6}
+                />
+                <div className="edit-actions">
+                  <button
+                    onClick={handleSaveEdit}
+                    className="btn btn-primary btn-sm"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="btn btn-outline btn-sm"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h1 className="post-title">{post.title}</h1>
+                <p className="post-content">{post.content}</p>
+                <div className="post-meta">
+                  By {post.profiles?.username} on{" "}
+                  {new Date(post.created_at).toLocaleDateString()}
+                  {post.edited_at && (
+                    <span className="edited-indicator">
+                      {" "}
+                      • Edited {new Date(post.edited_at).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+                {currentUser === post.user_id && (
+                  <div className="post-actions">
+                    <button
+                      onClick={handleEditPost}
+                      className="btn btn-outline btn-sm"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={handleDeletePost}
+                      className="btn btn-danger btn-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -259,6 +383,7 @@ export default function PostDetail() {
           comments={comments}
           onReply={fetchComments}
           onVoteUpdate={handleCommentVote}
+          onCommentUpdate={fetchComments}
         />
       </div>
     </div>

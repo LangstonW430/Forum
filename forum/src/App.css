@@ -258,18 +258,72 @@ body {
   color: var(--text-color);
 }
 
-/* Responsive design */
+/* Edit and Delete Styles */
+.edit-form {
+  margin-bottom: 1rem;
+}
+
+.edit-title-input,
+.edit-content-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  background-color: var(--card-background);
+  color: var(--text-color);
+}
+
+.edit-title-input:focus,
+.edit-content-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.post-actions,
+.comment-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  align-items: center;
+}
+
+.btn-danger {
+  background-color: var(--error-color);
+  color: white;
+  border: 1px solid var(--error-color);
+}
+
+.btn-danger:hover {
+  background-color: #dc2626;
+  border-color: #dc2626;
+}
+
+.edited-indicator {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Responsive adjustments for edit forms */
 @media (max-width: 640px) {
-  .main-content {
-    padding: 1rem 0.5rem;
+
+  .edit-actions,
+  .post-actions,
+  .comment-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  .card {
-    padding: 1rem;
-  }
-
-  .page-title {
-    font-size: 1.5rem;
+  .btn {
+    width: 100%;
   }
 }
 

@@ -9,12 +9,14 @@ interface CommentListProps {
     newVoteCount: number,
     newUserVote: number | null,
   ) => void;
+  onCommentUpdate?: () => void;
 }
 
 export default function CommentList({
   comments,
   onReply,
   onVoteUpdate,
+  onCommentUpdate,
 }: CommentListProps) {
   return (
     <div>
@@ -24,6 +26,7 @@ export default function CommentList({
           comment={comment}
           onReply={onReply}
           onVoteUpdate={onVoteUpdate}
+          onCommentUpdate={onCommentUpdate}
         />
       ))}
     </div>

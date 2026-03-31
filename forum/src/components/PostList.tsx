@@ -175,6 +175,12 @@ export default function PostList() {
                   <div className="post-meta">
                     By {post.profiles?.username} on{" "}
                     {new Date(post.created_at).toLocaleDateString()}
+                    {post.edited_at && (
+                      <span className="edited-indicator">
+                        {" "}
+                        • Edited {new Date(post.edited_at).toLocaleDateString()}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
