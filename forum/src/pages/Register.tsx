@@ -34,6 +34,7 @@ export default function Register() {
         data: {
           username: username,
         },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 

@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProfilePage from "./pages/ProfilePage";
 import UserProfilePage from "./pages/UserProfilePage";
+import AuthCallback from "./pages/AuthCallback";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { Analytics } from "@vercel/analytics/react";
 import "./App.css";
@@ -30,6 +31,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/user/:username" element={<UserProfilePage />} />

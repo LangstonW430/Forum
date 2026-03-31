@@ -22,7 +22,7 @@ A modern web-based forum application built with React, TypeScript, and Vite. Thi
 
 ## Live Demo
 
-Visit the live application at: [https://forum-chi-eight.vercel.app/](https://forum-chi-eight.vercel.app/)
+Visit the live application at: [exbo.site](https://exbo.site)
 
 ## Database Schema
 
