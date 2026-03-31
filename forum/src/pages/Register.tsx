@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
 export default function Register() {
@@ -7,21 +7,22 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const [registered, setRegistered] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
-    // Basic username validation
     if (username.length < 3) {
-      alert("Username must be at least 3 characters long");
+      setError("Username must be at least 3 characters long");
       setLoading(false);
       return;
     }
 
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      alert("Username can only contain letters, numbers, and underscores");
+      setError("Username can only contain letters, numbers, and underscores");
       setLoading(false);
       return;
     }
@@ -37,19 +38,40 @@ export default function Register() {
     });
 
     if (error) {
-      alert(error.message);
+      setError(error.message);
     } else {
-      // Profile will be created automatically by the trigger with the correct username
-      navigate("/");
+      setRegistered(true);
     }
     setLoading(false);
   };
+
+  if (registered) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <div className="register-success-icon">✉</div>
+          <h1 className="auth-title">Check your email</h1>
+          <p className="auth-subtitle">
+            We sent a verification link to <strong>{email}</strong>. Click the
+            link in that email to activate your account.
+          </p>
+          <p className="auth-footer">
+            Already verified?{" "}
+            <Link to="/login" className="auth-link">
+              Sign In
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-container">
       <div className="auth-card">
         <h1 className="auth-title">Create Account</h1>
         <p className="auth-subtitle">Join the forum community</p>
+        {error && <div className="alert alert-error">{error}</div>}
         <form onSubmit={handleRegister} className="auth-form">
           <div className="form-group">
             <label className="form-label">Email</label>

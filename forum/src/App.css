@@ -645,6 +645,12 @@ body {
   text-decoration: underline;
 }
 
+.register-success-icon {
+  font-size: 3rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
 /* Forms */
 .form-container {
   max-width: 640px;
