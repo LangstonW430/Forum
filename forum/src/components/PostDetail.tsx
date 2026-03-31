@@ -107,75 +107,6 @@ export default function PostDetail() {
     }
   };
 
-  useEffect(() => {
-    const getCurrentUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setCurrentUser(user?.id || null);
-    };
-
-    getCurrentUser();
-
-    if (id) {
-      fetchPost();
-      fetchComments();
-
-      // Subscribe to real-time updates for comments and votes
-      const commentsChannel = supabase
-        .channel("comments")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "comments",
-            filter: `post_id=eq.${id}`,
-          },
-          () => {
-            fetchComments();
-          },
-        )
-        .subscribe();
-
-      const commentVotesChannel = supabase
-        .channel("comment_votes")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "comment_votes",
-          },
-          () => {
-            fetchComments();
-          },
-        )
-        .subscribe();
-
-      const postVotesChannel = supabase
-        .channel("post_votes")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "post_votes",
-          },
-          () => {
-            fetchPost();
-          },
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(commentsChannel);
-        supabase.removeChannel(commentVotesChannel);
-        supabase.removeChannel(postVotesChannel);
-      };
-    }
-  }, [id]);
-
   const fetchPost = async () => {
     const {
       data: { user },
@@ -263,29 +194,79 @@ export default function PostDetail() {
         };
       });
 
-      // Build comment tree
-      const commentMap = new Map<string, Comment>();
-      const rootComments: Comment[] = [];
-
-      commentsWithVotes.forEach((comment: Comment) => {
-        commentMap.set(comment.id, { ...comment, replies: [] });
-      });
-
-      commentsWithVotes.forEach((comment: Comment) => {
-        if (comment.parent_comment_id) {
-          const parent = commentMap.get(comment.parent_comment_id);
-          if (parent) {
-            parent.replies!.push(commentMap.get(comment.id)!);
-          }
-        } else {
-          rootComments.push(commentMap.get(comment.id)!);
-        }
-      });
-
-      setComments(rootComments);
+      setComments(commentsWithVotes);
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setCurrentUser(user?.id || null);
+    };
+
+    getCurrentUser();
+
+    if (id) {
+      fetchPost();
+      fetchComments();
+
+      // Subscribe to real-time updates for comments and votes
+      const commentsChannel = supabase
+        .channel("comments")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "comments",
+            filter: `post_id=eq.${id}`,
+          },
+          () => {
+            fetchComments();
+          },
+        )
+        .subscribe();
+
+      const commentVotesChannel = supabase
+        .channel("comment_votes")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "comment_votes",
+          },
+          () => {
+            fetchComments();
+          },
+        )
+        .subscribe();
+
+      const postVotesChannel = supabase
+        .channel("post_votes")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "post_votes",
+          },
+          () => {
+            fetchPost();
+          },
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(commentsChannel);
+        supabase.removeChannel(commentVotesChannel);
+        supabase.removeChannel(postVotesChannel);
+      };
+    }
+  }, [id]);
 
   if (loading) return <div className="loading">Loading post...</div>;
   if (!post)

@@ -86,7 +86,3 @@ This application is hosted on Vercel. To deploy your own version:
 3. Make your changes and commit: `git commit -m 'Add feature'`
 4. Push to the branch: `git push origin feature-name`
 5. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License.
