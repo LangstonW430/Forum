@@ -1,16 +1,36 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import type { Post, Comment } from "../types";
 import CommentList from "./CommentList";
 import NewCommentForm from "./NewCommentForm";
 import VoteButtons from "./VoteButtons";
 
+type SortOrder = "newest" | "oldest" | "top" | "bottom";
+
+function sortCommentTree(comments: Comment[], order: SortOrder): Comment[] {
+  const sorted = [...comments].sort((a, b) => {
+    if (order === "newest")
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    if (order === "oldest")
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    if (order === "top")
+      return (b.vote_count ?? 0) - (a.vote_count ?? 0);
+    // bottom
+    return (a.vote_count ?? 0) - (b.vote_count ?? 0);
+  });
+  return sorted.map((c) => ({
+    ...c,
+    replies: c.replies ? sortCommentTree(c.replies, order) : [],
+  }));
+}
+
 export default function PostDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -176,7 +196,7 @@ export default function PostDetail() {
       console.error("Error fetching comments:", error);
     } else {
       // Calculate vote counts and user votes for each comment
-      const commentsWithVotes = (data || []).map((comment) => {
+      const flat = (data || []).map((comment) => {
         const votes = comment.comment_votes || [];
         const voteCount = votes.reduce(
           (sum: number, vote: any) => sum + vote.vote_type,
@@ -191,10 +211,24 @@ export default function PostDetail() {
           ...comment,
           vote_count: voteCount,
           user_vote: userVote,
+          replies: [] as Comment[],
         };
       });
 
-      setComments(commentsWithVotes);
+      // Build tree: nest replies under their parent comment
+      const map = new Map<string, Comment>();
+      flat.forEach((c) => map.set(c.id, c));
+
+      const roots: Comment[] = [];
+      flat.forEach((c) => {
+        if (c.parent_comment_id && map.has(c.parent_comment_id)) {
+          map.get(c.parent_comment_id)!.replies!.push(c);
+        } else {
+          roots.push(c);
+        }
+      });
+
+      setComments(roots);
     }
     setLoading(false);
   };
@@ -324,8 +358,14 @@ export default function PostDetail() {
                 <h1 className="post-title">{post.title}</h1>
                 <p className="post-content">{post.content}</p>
                 <div className="post-meta">
-                  By {post.profiles?.username} on{" "}
-                  {new Date(post.created_at).toLocaleDateString()}
+                  By{" "}
+                  <Link
+                    to={`/user/${post.profiles?.username}`}
+                    className="author-link"
+                  >
+                    {post.profiles?.username}
+                  </Link>{" "}
+                  on {new Date(post.created_at).toLocaleDateString()}
                   {post.edited_at && (
                     <span className="edited-indicator">
                       {" "}
@@ -356,12 +396,24 @@ export default function PostDetail() {
       </div>
 
       <div className="comments-section">
-        <h2 className="section-title">Comments</h2>
+        <div className="comments-header">
+          <h2 className="section-title">Comments</h2>
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+            className="comments-sort-select"
+          >
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="top">Most Upvoted</option>
+            <option value="bottom">Least Upvoted</option>
+          </select>
+        </div>
         <div className="comment-form">
           <NewCommentForm postId={id!} onCommentAdded={fetchComments} />
         </div>
         <CommentList
-          comments={comments}
+          comments={sortCommentTree(comments, sortOrder)}
           onReply={fetchComments}
           onVoteUpdate={handleCommentVote}
           onCommentUpdate={fetchComments}

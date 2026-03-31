@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import type { Comment } from "../types";
 import NewCommentForm from "./NewCommentForm";
@@ -126,8 +127,14 @@ export default function CommentItem({
             <>
               <div className="comment-text">{comment.content}</div>
               <div className="comment-meta">
-                By {comment.profiles?.username} on{" "}
-                {new Date(comment.created_at).toLocaleDateString()}
+                By{" "}
+                <Link
+                  to={`/user/${comment.profiles?.username}`}
+                  className="author-link"
+                >
+                  {comment.profiles?.username}
+                </Link>{" "}
+                on {new Date(comment.created_at).toLocaleDateString()}
                 {comment.edited_at && (
                   <span className="edited-indicator">
                     {" "}

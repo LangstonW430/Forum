@@ -173,8 +173,14 @@ export default function PostList() {
                       : post.content}
                   </p>
                   <div className="post-meta">
-                    By {post.profiles?.username} on{" "}
-                    {new Date(post.created_at).toLocaleDateString()}
+                    By{" "}
+                    <Link
+                      to={`/user/${post.profiles?.username}`}
+                      className="author-link"
+                    >
+                      {post.profiles?.username}
+                    </Link>{" "}
+                    on {new Date(post.created_at).toLocaleDateString()}
                     {post.edited_at && (
                       <span className="edited-indicator">
                         {" "}
