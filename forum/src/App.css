@@ -422,7 +422,9 @@ body {
     align-items: stretch;
   }
 
-  .btn {
+  .edit-actions .btn,
+  .post-actions .btn,
+  .comment-actions .btn {
     width: 100%;
   }
 }
@@ -1103,6 +1105,67 @@ body {
   gap: 0.4rem;
 }
 
+/* Hamburger — hidden on desktop */
+.navbar-mobile-right {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navbar-hamburger {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-color);
+  padding: 0.25rem 0.4rem;
+  border-radius: var(--radius);
+  transition: background 0.15s;
+}
+
+.navbar-hamburger:hover {
+  background: var(--surface-color);
+}
+
+/* Mobile dropdown menu */
+.navbar-mobile-menu {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border-color);
+  background: var(--card-background);
+}
+
+.navbar-mobile-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.5rem;
+  text-decoration: none;
+  color: var(--text-color);
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.15s;
+  width: 100%;
+}
+
+.navbar-mobile-item:last-child {
+  border-bottom: none;
+}
+
+.navbar-mobile-item:hover {
+  background: var(--surface-color);
+}
+
+.navbar-mobile-logout {
+  color: var(--error-color);
+}
+
 /* ── Messaging ── */
 
 /* Inbox */
@@ -1712,4 +1775,110 @@ body {
   font-size: 1rem;
   color: var(--text-muted);
   background: var(--surface-color);
+}
+
+/* ── Mobile Responsive ── */
+@media (max-width: 640px) {
+  /* Navbar: hide desktop links, show hamburger */
+  .navbar-links--desktop {
+    display: none;
+  }
+
+  .navbar-mobile-right {
+    display: flex;
+  }
+
+  .navbar-container {
+    padding: 0.75rem 1rem;
+  }
+
+  /* Main content reduced padding */
+  .main-content {
+    padding: 1.25rem 1rem;
+  }
+
+  /* Page header */
+  .page-title {
+    font-size: 1.75rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.95rem;
+  }
+
+  /* Auth card */
+  .auth-card {
+    padding: 1.75rem 1.25rem;
+  }
+
+  /* Forms */
+  .form-container {
+    padding: 1.5rem 1.25rem;
+  }
+
+  /* Post detail */
+  .post-detail {
+    padding: 1.25rem 1rem;
+  }
+
+  /* Profile card */
+  .profile-card {
+    padding: 1.5rem 1.25rem;
+  }
+
+  /* Sort tabs — scroll horizontally instead of wrapping */
+  .sort-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+
+  .sort-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sort-tab {
+    flex-shrink: 0;
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* Comment nesting — reduce indent to prevent overflow */
+  .comment-reply {
+    margin-left: 1rem;
+    padding-left: 0.75rem;
+  }
+
+  /* Conversation container — account for smaller navbar and no side padding */
+  .conversation-container {
+    margin: -1.25rem -1rem;
+    height: calc(100vh - 57px);
+  }
+
+  /* Messages inbox */
+  .messages-container {
+    padding: 0;
+  }
+
+  /* Post media gallery single column */
+  .post-media-gallery {
+    grid-template-columns: 1fr;
+  }
+
+  /* User profile name row — stack on very small screens */
+  .user-profile-name-row {
+    justify-content: center;
+  }
+
+  /* Modal fills screen on mobile */
+  .modal,
+  .crop-modal {
+    max-width: 100%;
+    border-radius: var(--radius-lg);
+  }
+
+  /* Section title */
+  .section-title {
+    font-size: 1.25rem;
+  }
 }

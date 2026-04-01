@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useEffect, useState } from "react";
 import type { User, AuthChangeEvent } from "@supabase/supabase-js";
@@ -9,6 +9,8 @@ export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
@@ -47,16 +49,22 @@ export default function Navbar() {
   }, []);
 
   const handleLogout = async () => {
+    setMenuOpen(false);
     await supabase.auth.signOut();
+    navigate("/login");
   };
+
+  const closeMenu = () => setMenuOpen(false);
 
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <Link to="/" className="navbar-brand">
+        <Link to="/" className="navbar-brand" onClick={closeMenu}>
           Exbo
         </Link>
-        <div className="navbar-links">
+
+        {/* Desktop links */}
+        <div className="navbar-links navbar-links--desktop">
           <ThemeToggle />
           {user ? (
             <>
@@ -70,10 +78,7 @@ export default function Navbar() {
                 <Avatar username={username || ""} avatarUrl={avatarUrl} size="sm" />
                 {username || user.email}
               </Link>
-              <button
-                onClick={handleLogout}
-                className="btn btn-secondary btn-sm"
-              >
+              <button onClick={handleLogout} className="btn btn-secondary btn-sm">
                 Logout
               </button>
             </>
@@ -88,7 +93,52 @@ export default function Navbar() {
             </>
           )}
         </div>
+
+        {/* Mobile right side: theme toggle + hamburger */}
+        <div className="navbar-mobile-right">
+          <ThemeToggle />
+          <button
+            className="navbar-hamburger"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+          >
+            {menuOpen ? "✕" : "☰"}
+          </button>
+        </div>
       </div>
+
+      {/* Mobile dropdown */}
+      {menuOpen && (
+        <div className="navbar-mobile-menu">
+          {user ? (
+            <>
+              <Link to="/profile" className="navbar-mobile-item navbar-user" onClick={closeMenu}>
+                <Avatar username={username || ""} avatarUrl={avatarUrl} size="sm" />
+                {username || user.email}
+              </Link>
+              <Link to="/new-post" className="navbar-mobile-item" onClick={closeMenu}>
+                New Post
+              </Link>
+              <Link to="/messages" className="navbar-mobile-item" onClick={closeMenu}>
+                Messages
+              </Link>
+              <button className="navbar-mobile-item navbar-mobile-logout" onClick={handleLogout}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="navbar-mobile-item" onClick={closeMenu}>
+                Login
+              </Link>
+              <Link to="/register" className="navbar-mobile-item" onClick={closeMenu}>
+                Register
+              </Link>
+            </>
+          )}
+        </div>
+      )}
     </nav>
   );
 }
