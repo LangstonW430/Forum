@@ -15,6 +15,12 @@ export default function Register() {
     setLoading(true);
     setError(null);
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Invalid email format");
+      setLoading(false);
+      return;
+    }
+
     if (username.length < 3) {
       setError("Username must be at least 3 characters long");
       setLoading(false);
@@ -23,6 +29,12 @@ export default function Register() {
 
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
       setError("Username can only contain letters, numbers, and underscores");
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
       setLoading(false);
       return;
     }
