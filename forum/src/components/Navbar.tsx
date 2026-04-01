@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { User, AuthChangeEvent } from "@supabase/supabase-js";
 import ThemeToggle from "./ThemeToggle";
 import Avatar from "./Avatar";
+import SearchBar from "./SearchBar";
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
@@ -63,6 +64,8 @@ export default function Navbar() {
           Exbo
         </Link>
 
+        <SearchBar />
+
         {/* Desktop links */}
         <div className="navbar-links navbar-links--desktop">
           <ThemeToggle />
@@ -111,6 +114,9 @@ export default function Navbar() {
       {/* Mobile dropdown */}
       {menuOpen && (
         <div className="navbar-mobile-menu">
+          <div className="navbar-mobile-search">
+            <SearchBar />
+          </div>
           {user ? (
             <>
               <Link to="/profile" className="navbar-mobile-item navbar-user" onClick={closeMenu}>

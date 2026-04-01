@@ -450,8 +450,8 @@ body {
   margin: 0 auto;
   padding: 1rem 1.5rem;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 1rem;
 }
 
 .navbar-brand {
@@ -471,6 +471,8 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 /* Posts Styles */
@@ -901,7 +903,7 @@ body {
 
 /* Profile Page */
 .profile-container {
-  max-width: 560px;
+  max-width: 680px;
   margin: 0 auto;
 }
 
@@ -964,7 +966,7 @@ body {
   width: 100%;
   padding: 0.875rem;
   font-size: 1rem;
-  margin-top: 0.5rem;
+  margin-top: 1.25rem;
 }
 
 /* Author link (on posts and comments) */
@@ -1534,9 +1536,10 @@ body {
 /* User profile page — name + message button row */
 .user-profile-name-row {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 /* ── Sort tabs ── */
@@ -1784,6 +1787,169 @@ body {
   background: var(--surface-color);
 }
 
+/* ── Search Bar ── */
+.search-bar {
+  position: relative;
+  flex: 1;
+  max-width: 360px;
+  min-width: 0;
+}
+
+.search-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 0 0.75rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input-wrapper:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.search-icon {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  user-select: none;
+  line-height: 1;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.45rem 0.4rem;
+  font-size: 0.9rem;
+  color: var(--text-color);
+  outline: none;
+  min-width: 0;
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-clear {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0.2rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.search-clear:hover {
+  color: var(--text-color);
+}
+
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  z-index: 500;
+  overflow: hidden;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.search-status {
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.search-section {
+  padding: 0.25rem 0;
+}
+
+.search-section + .search-section {
+  border-top: 1px solid var(--border-color);
+}
+
+.search-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  padding: 0.5rem 1rem 0.25rem;
+}
+
+.search-result {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.55rem 1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-color);
+  transition: background 0.12s;
+}
+
+.search-result:hover {
+  background: var(--surface-color);
+}
+
+.search-result-post-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+}
+
+.search-result-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.search-result-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-result-sub {
+  font-size: 0.775rem;
+  color: var(--text-muted);
+}
+
+/* Mobile search inside hamburger menu */
+.navbar-mobile-search {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.navbar-mobile-search .search-bar {
+  max-width: 100%;
+}
+
+.navbar-mobile-search .search-dropdown {
+  position: fixed;
+  top: auto;
+  left: 1rem;
+  right: 1rem;
+  width: auto;
+}
+
 /* ── Image Lightbox ── */
 .lightbox-overlay {
   position: fixed;
@@ -1840,8 +2006,12 @@ body {
 
 /* ── Mobile Responsive ── */
 @media (max-width: 640px) {
-  /* Navbar: hide desktop links, show hamburger */
+  /* Navbar: hide desktop links and search bar, show hamburger */
   .navbar-links--desktop {
+    display: none;
+  }
+
+  .navbar-container > .search-bar {
     display: none;
   }
 
@@ -1924,11 +2094,6 @@ body {
   /* Post media gallery single column */
   .post-media-gallery {
     grid-template-columns: 1fr;
-  }
-
-  /* User profile name row — stack on very small screens */
-  .user-profile-name-row {
-    justify-content: center;
   }
 
   /* Modal fills screen on mobile */
