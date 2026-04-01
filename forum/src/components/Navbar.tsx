@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useCurrentUser } from "../contexts/UserContext";
 import ThemeToggle from "./ThemeToggle";
 import Avatar from "./Avatar";
@@ -13,7 +13,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = useCallback(async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
       .select("username, avatar_url")
@@ -21,16 +21,17 @@ export default function Navbar() {
       .single();
     setUsername(data?.username ?? null);
     setAvatarUrl(data?.avatar_url ?? null);
-  };
+  }, []);
 
+  const userId = user?.id;
   useEffect(() => {
-    if (user) {
-      fetchProfile(user.id);
+    if (userId) {
+      fetchProfile(userId);
     } else {
       setUsername(null);
       setAvatarUrl(null);
     }
-  }, [user]);
+  }, [userId, fetchProfile]);
 
   const handleLogout = async () => {
     setMenuOpen(false);
