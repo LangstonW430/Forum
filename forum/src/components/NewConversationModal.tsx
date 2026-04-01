@@ -1,0 +1,205 @@
+import { useState } from "react";
+import { supabase } from "../lib/supabase";
+import Avatar from "./Avatar";
+
+interface Profile {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+}
+
+interface Props {
+  currentUserId: string;
+  onClose: () => void;
+  onCreated: (conversationId: string) => void;
+}
+
+export default function NewConversationModal({
+  currentUserId,
+  onClose,
+  onCreated,
+}: Props) {
+  const [search, setSearch] = useState("");
+  const [results, setResults] = useState<Profile[]>([]);
+  const [selected, setSelected] = useState<Profile[]>([]);
+  const [groupName, setGroupName] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  const handleSearch = async (q: string) => {
+    setSearch(q);
+    if (q.trim().length === 0) {
+      setResults([]);
+      return;
+    }
+    setSearching(true);
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, username, avatar_url")
+      .ilike("username", `%${q.trim()}%`)
+      .neq("id", currentUserId)
+      .limit(8);
+    setResults(
+      (data ?? []).filter((p) => !selected.some((s) => s.id === p.id)),
+    );
+    setSearching(false);
+  };
+
+  const addUser = (profile: Profile) => {
+    setSelected((prev) => [...prev, profile]);
+    setResults((prev) => prev.filter((p) => p.id !== profile.id));
+    setSearch("");
+  };
+
+  const removeUser = (id: string) => {
+    setSelected((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const handleCreate = async () => {
+    if (selected.length === 0 || creating) return;
+    setCreating(true);
+
+    const isGroup = selected.length > 1;
+
+    // For DMs: reuse an existing conversation if one already exists
+    if (!isGroup) {
+      const { data: existingConvos } = await supabase
+        .from("conversations")
+        .select("id, conversation_members(user_id)")
+        .eq("is_group", false);
+
+      const existing = (existingConvos ?? []).find(
+        (c: any) =>
+          c.conversation_members.length === 2 &&
+          c.conversation_members.some((m: any) => m.user_id === selected[0].id),
+      );
+
+      if (existing) {
+        onCreated(existing.id);
+        return;
+      }
+    }
+
+    // Create conversation
+    const { data: convo, error: convoError } = await supabase
+      .from("conversations")
+      .insert({
+        is_group: isGroup,
+        name: isGroup && groupName.trim() ? groupName.trim() : null,
+        created_by: currentUserId,
+      })
+      .select("id")
+      .single();
+
+    if (convoError || !convo) {
+      alert("Failed to create conversation");
+      setCreating(false);
+      return;
+    }
+
+    // Add self first (satisfies the RLS policy), then add others
+    const { error: selfError } = await supabase
+      .from("conversation_members")
+      .insert({ conversation_id: convo.id, user_id: currentUserId });
+
+    if (selfError) {
+      alert("Failed to join conversation");
+      setCreating(false);
+      return;
+    }
+
+    const { error: othersError } = await supabase
+      .from("conversation_members")
+      .insert(selected.map((p) => ({ conversation_id: convo.id, user_id: p.id })));
+
+    if (othersError) {
+      alert("Failed to add members");
+      setCreating(false);
+      return;
+    }
+
+    onCreated(convo.id);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">New Message</h2>
+          <button className="modal-close" onClick={onClose} aria-label="Close">
+            ×
+          </button>
+        </div>
+
+        {/* Selected user chips */}
+        {selected.length > 0 && (
+          <div className="new-convo-chips">
+            {selected.map((p) => (
+              <span key={p.id} className="new-convo-chip">
+                {p.username}
+                <button onClick={() => removeUser(p.id)} aria-label="Remove">
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Search input */}
+        <input
+          className="form-input"
+          type="text"
+          placeholder="Search by username…"
+          value={search}
+          onChange={(e) => handleSearch(e.target.value)}
+          autoFocus
+        />
+
+        {searching && <p className="new-convo-hint">Searching…</p>}
+
+        {results.length > 0 && (
+          <div className="new-convo-results">
+            {results.map((p) => (
+              <div
+                key={p.id}
+                className="new-convo-result"
+                onClick={() => addUser(p)}
+              >
+                <Avatar username={p.username} avatarUrl={p.avatar_url} size="sm" />
+                <span>{p.username}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Optional group name when multiple users selected */}
+        {selected.length > 1 && (
+          <input
+            className="form-input"
+            type="text"
+            placeholder="Group name (optional)"
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+          />
+        )}
+
+        <div className="modal-actions">
+          <button className="btn btn-outline" onClick={onClose} disabled={creating}>
+            Cancel
+          </button>
+          <button
+            className="btn btn-primary"
+            disabled={selected.length === 0 || creating}
+            onClick={handleCreate}
+          >
+            {creating
+              ? "Creating…"
+              : selected.length > 1
+                ? "Create Group"
+                : "Start Chat"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

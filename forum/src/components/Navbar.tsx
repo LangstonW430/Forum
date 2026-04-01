@@ -63,6 +63,9 @@ export default function Navbar() {
               <Link to="/new-post" className="btn btn-primary btn-sm">
                 New Post
               </Link>
+              <Link to="/messages" className="btn btn-outline btn-sm">
+                Messages
+              </Link>
               <Link to="/profile" className="navbar-user">
                 <Avatar username={username || ""} avatarUrl={avatarUrl} size="sm" />
                 {username || user.email}

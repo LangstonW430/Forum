@@ -1,15 +1,24 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import type { Post, Profile } from "../types";
 import Avatar from "../components/Avatar";
 
 export default function UserProfilePage() {
   const { username } = useParams<{ username: string }>();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [messagingLoading, setMessagingLoading] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setCurrentUserId(user?.id ?? null);
+    });
+  }, []);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -40,6 +49,54 @@ export default function UserProfilePage() {
     if (username) loadProfile();
   }, [username]);
 
+  const handleMessage = async () => {
+    if (!currentUserId || !profile) {
+      navigate("/login");
+      return;
+    }
+    setMessagingLoading(true);
+
+    // Check for existing DM
+    const { data: existingConvos } = await supabase
+      .from("conversations")
+      .select("id, conversation_members(user_id)")
+      .eq("is_group", false);
+
+    const existing = (existingConvos ?? []).find(
+      (c: any) =>
+        c.conversation_members.length === 2 &&
+        c.conversation_members.some((m: any) => m.user_id === profile.id),
+    );
+
+    if (existing) {
+      navigate(`/messages/${existing.id}`);
+      return;
+    }
+
+    // Create new DM
+    const { data: convo, error } = await supabase
+      .from("conversations")
+      .insert({ is_group: false, created_by: currentUserId })
+      .select("id")
+      .single();
+
+    if (error || !convo) {
+      alert("Failed to start conversation");
+      setMessagingLoading(false);
+      return;
+    }
+
+    await supabase
+      .from("conversation_members")
+      .insert({ conversation_id: convo.id, user_id: currentUserId });
+
+    await supabase
+      .from("conversation_members")
+      .insert({ conversation_id: convo.id, user_id: profile.id });
+
+    navigate(`/messages/${convo.id}`);
+  };
+
   if (loading) return <div className="loading">Loading profile...</div>;
 
   if (notFound) {
@@ -60,7 +117,18 @@ export default function UserProfilePage() {
         <Avatar username={profile!.username} avatarUrl={profile!.avatar_url} size="lg" />
 
         <div className="user-profile-info">
-          <h1 className="user-profile-username">{profile!.username}</h1>
+          <div className="user-profile-name-row">
+            <h1 className="user-profile-username">{profile!.username}</h1>
+            {currentUserId && currentUserId !== profile!.id && (
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={handleMessage}
+                disabled={messagingLoading}
+              >
+                {messagingLoading ? "Opening…" : "Message"}
+              </button>
+            )}
+          </div>
           <p className="user-profile-joined">
             Member since {new Date(profile!.created_at).toLocaleDateString()}
           </p>

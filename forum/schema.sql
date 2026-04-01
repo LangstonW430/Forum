@@ -196,3 +196,107 @@ CREATE POLICY "Users delete own avatar" ON storage.objects
   FOR DELETE USING (
     bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1]
   );
+
+-- ── Messaging ────────────────────────────────────────────────────────────────
+
+-- Conversations (DMs and group chats)
+CREATE TABLE IF NOT EXISTS conversations (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  name TEXT,                                          -- NULL for DMs, optional for groups
+  is_group BOOLEAN DEFAULT FALSE NOT NULL,
+  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  last_message_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Who belongs to each conversation
+CREATE TABLE IF NOT EXISTS conversation_members (
+  conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  joined_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (conversation_id, user_id)
+);
+
+-- Messages
+CREATE TABLE IF NOT EXISTS messages (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_conversation_members_user ON conversation_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id, created_at);
+
+-- Enable RLS
+ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE conversation_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+-- Conversations: visible and updatable only to members
+DROP POLICY IF EXISTS "Members can view conversations" ON conversations;
+CREATE POLICY "Members can view conversations" ON conversations
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM conversation_members
+      WHERE conversation_id = conversations.id AND user_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "Auth users can create conversations" ON conversations;
+CREATE POLICY "Auth users can create conversations" ON conversations
+  FOR INSERT WITH CHECK (auth.uid() = created_by);
+
+DROP POLICY IF EXISTS "Members can update conversations" ON conversations;
+CREATE POLICY "Members can update conversations" ON conversations
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM conversation_members
+      WHERE conversation_id = conversations.id AND user_id = auth.uid()
+    )
+  );
+
+-- Conversation members: visible to members of the same conversation
+DROP POLICY IF EXISTS "Members can view conversation members" ON conversation_members;
+CREATE POLICY "Members can view conversation members" ON conversation_members
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM conversation_members cm2
+      WHERE cm2.conversation_id = conversation_members.conversation_id
+        AND cm2.user_id = auth.uid()
+    )
+  );
+
+-- Members can add themselves (creator's first row) OR add others once they're a member
+DROP POLICY IF EXISTS "Members can add to conversations" ON conversation_members;
+CREATE POLICY "Members can add to conversations" ON conversation_members
+  FOR INSERT WITH CHECK (
+    auth.uid() = user_id
+    OR EXISTS (
+      SELECT 1 FROM conversation_members cm2
+      WHERE cm2.conversation_id = conversation_members.conversation_id
+        AND cm2.user_id = auth.uid()
+    )
+  );
+
+-- Messages: visible and sendable only to members
+DROP POLICY IF EXISTS "Members can view messages" ON messages;
+CREATE POLICY "Members can view messages" ON messages
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM conversation_members
+      WHERE conversation_id = messages.conversation_id AND user_id = auth.uid()
+    )
+  );
+
+DROP POLICY IF EXISTS "Members can send messages" ON messages;
+CREATE POLICY "Members can send messages" ON messages
+  FOR INSERT WITH CHECK (
+    auth.uid() = user_id
+    AND EXISTS (
+      SELECT 1 FROM conversation_members
+      WHERE conversation_id = messages.conversation_id AND user_id = auth.uid()
+    )
+  );
