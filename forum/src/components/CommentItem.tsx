@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
+import { useCurrentUser } from "../contexts/UserContext";
 import type { Comment } from "../types";
 import NewCommentForm from "./NewCommentForm";
 import VoteButtons from "./VoteButtons";
@@ -25,21 +26,10 @@ export default function CommentItem({
   onCommentUpdate,
 }: CommentItemProps) {
   const [showReplyForm, setShowReplyForm] = useState(false);
-  const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
   const toast = useToast();
-
-  useEffect(() => {
-    const getCurrentUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setCurrentUser(user?.id || null);
-    };
-
-    getCurrentUser();
-  }, []);
+  const { userId } = useCurrentUser();
 
   const handleEditComment = () => {
     setEditContent(comment.content);
@@ -157,7 +147,7 @@ export default function CommentItem({
                 >
                   {showReplyForm ? "Cancel Reply" : "Reply"}
                 </button>
-                {currentUser === comment.user_id && (
+                {userId === comment.user_id && (
                   <>
                     <button
                       onClick={handleEditComment}

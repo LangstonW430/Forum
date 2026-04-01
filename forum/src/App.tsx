@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastProvider } from "./contexts/ToastContext";
+import { UserProvider } from "./contexts/UserContext";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import PostDetailPage from "./pages/PostDetailPage";
@@ -21,6 +22,7 @@ function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
+      <UserProvider>
       <Router>
         <div className="app-container">
           <Navbar />
@@ -71,6 +73,7 @@ function App() {
         </div>
       </Router>
       <Analytics />
+      </UserProvider>
       </ToastProvider>
     </ThemeProvider>
   );

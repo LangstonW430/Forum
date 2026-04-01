@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
+import { useCurrentUser } from "../contexts/UserContext";
 import VoteButtons from "./VoteButtons";
 import Avatar from "./Avatar";
 import ImageLightbox from "./ImageLightbox";
@@ -42,6 +43,9 @@ export default function PostList() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const toast = useToast();
+  const { userId } = useCurrentUser();
+  const userIdRef = useRef(userId);
+  useEffect(() => { userIdRef.current = userId; }, [userId]);
 
   // Test Supabase connection on mount
   useEffect(() => {
@@ -111,10 +115,6 @@ export default function PostList() {
 
   const fetchPosts = async () => {
     console.log("Fetching posts...");
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    console.log("Current user:", user);
 
     const { data, error } = await supabase
       .from("posts")
@@ -146,9 +146,8 @@ export default function PostList() {
           (sum: number, vote: any) => sum + vote.vote_type,
           0,
         );
-        const userVote = user
-          ? votes.find((vote: any) => vote.user_id === user.id)?.vote_type ||
-            null
+        const userVote = userIdRef.current
+          ? votes.find((vote: any) => vote.user_id === userIdRef.current)?.vote_type || null
           : null;
 
         const commentCount = (post.comments as { count: number }[])?.[0]?.count ?? 0;

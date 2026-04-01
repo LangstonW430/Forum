@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { useCurrentUser } from "../contexts/UserContext";
 import type { Post, Profile } from "../types";
 import Avatar from "../components/Avatar";
 import ImageLightbox from "../components/ImageLightbox";
@@ -12,15 +13,9 @@ export default function UserProfilePage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [messagingLoading, setMessagingLoading] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setCurrentUserId(user?.id ?? null);
-    });
-  }, []);
+  const { userId: currentUserId } = useCurrentUser();
 
   useEffect(() => {
     const loadProfile = async () => {

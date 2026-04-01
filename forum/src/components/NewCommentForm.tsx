@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { NewComment } from "../types";
 import { useToast } from "../contexts/ToastContext";
+import { useCurrentUser } from "../contexts/UserContext";
 
 interface NewCommentFormProps {
   postId: string;
@@ -17,19 +18,15 @@ export default function NewCommentForm({
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const toast = useToast();
+  const { userId } = useCurrentUser();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    if (!userId) {
       toast.info("You must be logged in to comment");
-      setLoading(false);
       return;
     }
+    setLoading(true);
 
     const comment: NewComment = {
       content,
@@ -39,7 +36,7 @@ export default function NewCommentForm({
 
     const { error } = await supabase
       .from("comments")
-      .insert([{ ...comment, user_id: user.id }]);
+      .insert([{ ...comment, user_id: userId }]);
 
     if (error) {
       console.error("Error creating comment:", error);

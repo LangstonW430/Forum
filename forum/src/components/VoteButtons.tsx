@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
+import { useCurrentUser } from "../contexts/UserContext";
 
 interface VoteButtonsProps {
   itemId: string;
@@ -19,21 +20,18 @@ export default function VoteButtons({
 }: VoteButtonsProps) {
   const [loading, setLoading] = useState(false);
   const toast = useToast();
+  const { userId } = useCurrentUser();
 
   const handleVote = async (voteType: number) => {
     if (loading) return;
 
+    if (!userId) {
+      toast.info("You must be logged in to vote");
+      return;
+    }
+
     setLoading(true);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        toast.info("You must be logged in to vote");
-        setLoading(false);
-        return;
-      }
 
       const tableName = itemType === "post" ? "post_votes" : "comment_votes";
       const itemIdField = itemType === "post" ? "post_id" : "comment_id";
@@ -43,7 +41,7 @@ export default function VoteButtons({
         .from(tableName)
         .select("*")
         .eq(itemIdField, itemId)
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .single();
 
       let newVoteCount = voteCount;
@@ -56,7 +54,7 @@ export default function VoteButtons({
             .from(tableName)
             .delete()
             .eq(itemIdField, itemId)
-            .eq("user_id", user.id);
+            .eq("user_id", userId);
           newVoteCount = voteCount - voteType;
           newUserVote = null;
         } else {
@@ -65,14 +63,14 @@ export default function VoteButtons({
             .from(tableName)
             .update({ vote_type: voteType })
             .eq(itemIdField, itemId)
-            .eq("user_id", user.id);
+            .eq("user_id", userId);
           newVoteCount = voteCount - existingVote.vote_type + voteType;
         }
       } else {
         // User is voting for the first time
         await supabase.from(tableName).insert({
           [itemIdField]: itemId,
-          user_id: user.id,
+          user_id: userId,
           vote_type: voteType,
         });
         newVoteCount = voteCount + voteType;

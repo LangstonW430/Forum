@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
+import { useCurrentUser } from "../contexts/UserContext";
 import type { Post, Comment } from "../types";
 import CommentList from "./CommentList";
 import NewCommentForm from "./NewCommentForm";
@@ -35,7 +36,6 @@ export default function PostDetail() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
@@ -47,6 +47,9 @@ export default function PostDetail() {
   const editFileInputRef = useRef<HTMLInputElement>(null);
   const mountedRef = useRef(true);
   const toast = useToast();
+  const { userId } = useCurrentUser();
+  const userIdRef = useRef(userId);
+  useEffect(() => { userIdRef.current = userId; }, [userId]);
 
   const handlePostVote = (newVoteCount: number, newUserVote: number | null) => {
     if (post) {
@@ -114,15 +117,11 @@ export default function PostDetail() {
     setEditSaving(true);
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
       // Upload any new files
       const uploadedUrls: string[] = [];
       for (const file of editNewFiles) {
         const ext = file.name.split(".").pop();
-        const path = `${user?.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from("post-media")
           .upload(path, file, { cacheControl: "3600", upsert: false });
@@ -190,10 +189,6 @@ export default function PostDetail() {
   };
 
   const fetchPost = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
     const { data, error } = await supabase
       .from("posts")
       .select(
@@ -221,8 +216,8 @@ export default function PostDetail() {
         (sum: number, vote: any) => sum + vote.vote_type,
         0,
       );
-      const userVote = user
-        ? votes.find((vote: any) => vote.user_id === user.id)?.vote_type || null
+      const userVote = userIdRef.current
+        ? votes.find((vote: any) => vote.user_id === userIdRef.current)?.vote_type || null
         : null;
 
       if (mountedRef.current) {
@@ -236,10 +231,6 @@ export default function PostDetail() {
   };
 
   const fetchComments = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
     const { data, error } = await supabase
       .from("comments")
       .select(
@@ -268,9 +259,8 @@ export default function PostDetail() {
           (sum: number, vote: any) => sum + vote.vote_type,
           0,
         );
-        const userVote = user
-          ? votes.find((vote: any) => vote.user_id === user.id)?.vote_type ||
-            null
+        const userVote = userIdRef.current
+          ? votes.find((vote: any) => vote.user_id === userIdRef.current)?.vote_type || null
           : null;
 
         return {
@@ -301,15 +291,6 @@ export default function PostDetail() {
 
   useEffect(() => {
     mountedRef.current = true;
-
-    const getCurrentUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (mountedRef.current) setCurrentUser(user?.id || null);
-    };
-
-    getCurrentUser();
 
     const channels: ReturnType<typeof supabase.channel>[] = [];
 
@@ -538,7 +519,7 @@ export default function PostDetail() {
                     </span>
                   )}
                 </div>
-                {currentUser === post.user_id && (
+                {userId === post.user_id && (
                   <div className="post-actions">
                     <button
                       onClick={handleEditPost}

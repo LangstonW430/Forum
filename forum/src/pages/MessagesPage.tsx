@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import Avatar from "../components/Avatar";
 import NewConversationModal from "../components/NewConversationModal";
+import { useCurrentUser } from "../contexts/UserContext";
 
 interface ConversationMember {
   user_id: string;
@@ -25,24 +26,18 @@ interface Conversation {
 export default function MessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showNewModal, setShowNewModal] = useState(false);
   const navigate = useNavigate();
+  const { userId: currentUserId, loading: authLoading } = useCurrentUser();
 
   useEffect(() => {
-    const init = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/login");
-        return;
-      }
-      setCurrentUserId(user.id);
-      await fetchConversations(user.id);
-    };
-    init();
-  }, []);
+    if (authLoading) return;
+    if (!currentUserId) {
+      navigate("/login");
+      return;
+    }
+    fetchConversations(currentUserId);
+  }, [currentUserId, authLoading]);
 
   const fetchConversations = async (userId?: string) => {
     const resolvedUserId = userId ?? currentUserId;

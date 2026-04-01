@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import type { NewPost } from "../types";
 import { useToast } from "../contexts/ToastContext";
+import { useCurrentUser } from "../contexts/UserContext";
 
 export default function NewPostForm() {
   const [form, setForm] = useState<NewPost>({ title: "", content: "" });
@@ -12,6 +13,7 @@ export default function NewPostForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useCurrentUser();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
@@ -38,16 +40,6 @@ export default function NewPostForm() {
     setLoading(true);
 
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError) {
-        toast.error(`Authentication error: ${userError.message}`);
-        return;
-      }
-
       if (!user) {
         toast.info("You must be logged in to create a post");
         return;

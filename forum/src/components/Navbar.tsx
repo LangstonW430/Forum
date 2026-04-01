@@ -1,13 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useEffect, useState } from "react";
-import type { User, AuthChangeEvent } from "@supabase/supabase-js";
+import { useCurrentUser } from "../contexts/UserContext";
 import ThemeToggle from "./ThemeToggle";
 import Avatar from "./Avatar";
 import SearchBar from "./SearchBar";
 
 export default function Navbar() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useCurrentUser();
   const [username, setUsername] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -24,30 +24,13 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
-      if (user) fetchProfile(user.id);
-    };
-    getUser();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event: AuthChangeEvent, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          fetchProfile(session.user.id);
-        } else {
-          setUsername(null);
-        }
-      },
-    );
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
+    if (user) {
+      fetchProfile(user.id);
+    } else {
+      setUsername(null);
+      setAvatarUrl(null);
+    }
+  }, [user]);
 
   const handleLogout = async () => {
     setMenuOpen(false);

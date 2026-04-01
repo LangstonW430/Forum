@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
-import type { User } from "@supabase/supabase-js";
+import { useCurrentUser } from "../contexts/UserContext";
 import Avatar from "../components/Avatar";
 import AvatarCropModal from "../components/AvatarCropModal";
 import { getCroppedBlob } from "../utils/cropImage";
 import type { Area } from "react-easy-crop";
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useCurrentUser();
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -22,30 +22,24 @@ export default function ProfilePage() {
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    if (!user) return;
     const loadProfile = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username, bio, avatar_url")
+        .eq("id", user.id)
+        .single();
 
-      if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("username, bio, avatar_url")
-          .eq("id", user.id)
-          .single();
-
-        if (profile) {
-          setUsername(profile.username || "");
-          setBio(profile.bio || "");
-          setAvatarUrl(profile.avatar_url || null);
-        }
+      if (profile) {
+        setUsername(profile.username || "");
+        setBio(profile.bio || "");
+        setAvatarUrl(profile.avatar_url || null);
       }
       setLoading(false);
     };
 
     loadProfile();
-  }, []);
+  }, [user]);
 
   // When user picks a file, open the crop modal instead of uploading directly
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
