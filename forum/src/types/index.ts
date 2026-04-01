@@ -50,6 +50,9 @@ export interface CommentVote {
   created_at: string;
 }
 
+// Minimal shape returned by Supabase vote joins (vote_type + user_id only)
+export type VoteRecord = Pick<PostVote, "vote_type" | "user_id">;
+
 export interface NewPost {
   title: string;
   content: string;

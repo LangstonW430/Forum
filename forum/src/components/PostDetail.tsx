@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useToast } from "../contexts/ToastContext";
 import { useCurrentUser } from "../contexts/UserContext";
-import type { Post, Comment } from "../types";
+import type { Post, Comment, VoteRecord } from "../types";
 import CommentList from "./CommentList";
 import NewCommentForm from "./NewCommentForm";
 import VoteButtons from "./VoteButtons";
@@ -213,11 +213,11 @@ export default function PostDetail() {
       // Calculate vote count and user vote
       const votes = data.post_votes || [];
       const voteCount = votes.reduce(
-        (sum: number, vote: any) => sum + vote.vote_type,
+        (sum: number, vote: VoteRecord) => sum + vote.vote_type,
         0,
       );
       const userVote = userIdRef.current
-        ? votes.find((vote: any) => vote.user_id === userIdRef.current)?.vote_type || null
+        ? votes.find((vote: VoteRecord) => vote.user_id === userIdRef.current)?.vote_type || null
         : null;
 
       if (mountedRef.current) {
@@ -256,11 +256,11 @@ export default function PostDetail() {
       const flat = (data || []).map((comment) => {
         const votes = comment.comment_votes || [];
         const voteCount = votes.reduce(
-          (sum: number, vote: any) => sum + vote.vote_type,
+          (sum: number, vote: VoteRecord) => sum + vote.vote_type,
           0,
         );
         const userVote = userIdRef.current
-          ? votes.find((vote: any) => vote.user_id === userIdRef.current)?.vote_type || null
+          ? votes.find((vote: VoteRecord) => vote.user_id === userIdRef.current)?.vote_type || null
           : null;
 
         return {

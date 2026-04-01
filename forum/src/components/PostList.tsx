@@ -6,7 +6,7 @@ import { useCurrentUser } from "../contexts/UserContext";
 import VoteButtons from "./VoteButtons";
 import Avatar from "./Avatar";
 import ImageLightbox from "./ImageLightbox";
-import type { Post } from "../types";
+import type { Post, VoteRecord } from "../types";
 
 type SortOrder = "newest" | "oldest" | "popular" | "trending";
 
@@ -143,11 +143,11 @@ export default function PostList() {
       const postsWithVotes = (data || []).map((post) => {
         const votes = post.post_votes || [];
         const voteCount = votes.reduce(
-          (sum: number, vote: any) => sum + vote.vote_type,
+          (sum: number, vote: VoteRecord) => sum + vote.vote_type,
           0,
         );
         const userVote = userIdRef.current
-          ? votes.find((vote: any) => vote.user_id === userIdRef.current)?.vote_type || null
+          ? votes.find((vote: VoteRecord) => vote.user_id === userIdRef.current)?.vote_type || null
           : null;
 
         const commentCount = (post.comments as { count: number }[])?.[0]?.count ?? 0;
