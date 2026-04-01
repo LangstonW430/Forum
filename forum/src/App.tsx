@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { ToastProvider } from "./contexts/ToastContext";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import PostDetailPage from "./pages/PostDetailPage";
@@ -12,16 +13,19 @@ import MessagesPage from "./pages/MessagesPage";
 import ConversationPage from "./pages/ConversationPage";
 import AuthCallback from "./pages/AuthCallback";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { Analytics } from "@vercel/analytics/react";
 import "./App.css";
 
 function App() {
   return (
     <ThemeProvider>
+      <ToastProvider>
       <Router>
         <div className="app-container">
           <Navbar />
           <main className="main-content">
+            <ErrorBoundary>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/post/:id" element={<PostDetailPage />} />
@@ -62,10 +66,12 @@ function App() {
                 }
               />
             </Routes>
+            </ErrorBoundary>
           </main>
         </div>
       </Router>
       <Analytics />
+      </ToastProvider>
     </ThemeProvider>
   );
 }

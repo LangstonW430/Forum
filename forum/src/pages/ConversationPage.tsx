@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import Avatar from "../components/Avatar";
+import { useToast } from "../contexts/ToastContext";
 
 interface Message {
   id: string;

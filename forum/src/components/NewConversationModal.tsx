@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import Avatar from "./Avatar";
+import { useToast } from "../contexts/ToastContext";
 
 interface Profile {
   id: string;
@@ -25,6 +26,7 @@ export default function NewConversationModal({
   const [groupName, setGroupName] = useState("");
   const [searching, setSearching] = useState(false);
   const [creating, setCreating] = useState(false);
+  const toast = useToast();
 
   const handleSearch = async (q: string) => {
     setSearch(q);
@@ -39,9 +41,11 @@ export default function NewConversationModal({
       .ilike("username", `%${q.trim()}%`)
       .neq("id", currentUserId)
       .limit(8);
-    setResults(
-      (data ?? []).filter((p) => !selected.some((s) => s.id === p.id)),
-    );
+    const matches = data ?? [];
+    if (matches.length === 0) {
+      toast.error("User doesn't exist");
+    }
+    setResults(matches.filter((p) => !selected.some((s) => s.id === p.id)));
     setSearching(false);
   };
 
@@ -94,7 +98,7 @@ export default function NewConversationModal({
       });
 
     if (convoError) {
-      alert(`Failed to create conversation: ${convoError.message}`);
+      toast.error(`Failed to create conversation: ${convoError.message}`);
       setCreating(false);
       return;
     }
@@ -105,7 +109,7 @@ export default function NewConversationModal({
       .insert({ conversation_id: convoId, user_id: currentUserId });
 
     if (selfError) {
-      alert("Failed to join conversation");
+      toast.error("Failed to join conversation");
       setCreating(false);
       return;
     }
@@ -115,7 +119,7 @@ export default function NewConversationModal({
       .insert(selected.map((p) => ({ conversation_id: convoId, user_id: p.id })));
 
     if (othersError) {
-      alert(`Failed to add members: ${othersError.message}`);
+      toast.error(`Failed to add members: ${othersError.message}`);
       setCreating(false);
       return;
     }

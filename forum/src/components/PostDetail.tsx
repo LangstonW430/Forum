@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { useToast } from "../contexts/ToastContext";
 import type { Post, Comment } from "../types";
 import CommentList from "./CommentList";
 import NewCommentForm from "./NewCommentForm";
@@ -44,6 +45,8 @@ export default function PostDetail() {
   const [editSaving, setEditSaving] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
+  const mountedRef = useRef(true);
+  const toast = useToast();
 
   const handlePostVote = (newVoteCount: number, newUserVote: number | null) => {
     if (post) {
@@ -124,7 +127,7 @@ export default function PostDetail() {
           .from("post-media")
           .upload(path, file, { cacheControl: "3600", upsert: false });
         if (uploadError) {
-          alert(`Failed to upload ${file.name}: ${uploadError.message}`);
+          toast.error(`Failed to upload ${file.name}: ${uploadError.message}`);
           return;
         }
         const { data: urlData } = supabase.storage
@@ -146,7 +149,7 @@ export default function PostDetail() {
         .eq("id", post.id);
 
       if (error) {
-        alert(`Failed to update post: ${error.message}`);
+        toast.error(`Failed to update post: ${error.message}`);
       } else {
         editNewPreviews.forEach((p) => URL.revokeObjectURL(p));
         setPost({
@@ -180,7 +183,7 @@ export default function PostDetail() {
 
     if (error) {
       console.error("Error deleting post:", error);
-      alert("Failed to delete post");
+      toast.error("Failed to delete post");
     } else {
       navigate("/");
     }
@@ -222,11 +225,13 @@ export default function PostDetail() {
         ? votes.find((vote: any) => vote.user_id === user.id)?.vote_type || null
         : null;
 
-      setPost({
-        ...data,
-        vote_count: voteCount,
-        user_vote: userVote,
-      });
+      if (mountedRef.current) {
+        setPost({
+          ...data,
+          vote_count: voteCount,
+          user_vote: userVote,
+        });
+      }
     }
   };
 
@@ -289,28 +294,32 @@ export default function PostDetail() {
         }
       });
 
-      setComments(roots);
+      if (mountedRef.current) setComments(roots);
     }
-    setLoading(false);
+    if (mountedRef.current) setLoading(false);
   };
 
   useEffect(() => {
+    mountedRef.current = true;
+
     const getCurrentUser = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      setCurrentUser(user?.id || null);
+      if (mountedRef.current) setCurrentUser(user?.id || null);
     };
 
     getCurrentUser();
+
+    const channels: ReturnType<typeof supabase.channel>[] = [];
 
     if (id) {
       fetchPost();
       fetchComments();
 
-      // Subscribe to real-time updates for comments and votes
+      // Use id-scoped channel names to prevent conflicts across post navigations
       const commentsChannel = supabase
-        .channel("comments")
+        .channel(`comments-${id}`)
         .on(
           "postgres_changes",
           {
@@ -319,14 +328,12 @@ export default function PostDetail() {
             table: "comments",
             filter: `post_id=eq.${id}`,
           },
-          () => {
-            fetchComments();
-          },
+          () => fetchComments(),
         )
         .subscribe();
 
       const commentVotesChannel = supabase
-        .channel("comment_votes")
+        .channel(`comment_votes-${id}`)
         .on(
           "postgres_changes",
           {
@@ -334,14 +341,12 @@ export default function PostDetail() {
             schema: "public",
             table: "comment_votes",
           },
-          () => {
-            fetchComments();
-          },
+          () => fetchComments(),
         )
         .subscribe();
 
       const postVotesChannel = supabase
-        .channel("post_votes")
+        .channel(`post_votes-${id}`)
         .on(
           "postgres_changes",
           {
@@ -349,18 +354,17 @@ export default function PostDetail() {
             schema: "public",
             table: "post_votes",
           },
-          () => {
-            fetchPost();
-          },
+          () => fetchPost(),
         )
         .subscribe();
 
-      return () => {
-        supabase.removeChannel(commentsChannel);
-        supabase.removeChannel(commentVotesChannel);
-        supabase.removeChannel(postVotesChannel);
-      };
+      channels.push(commentsChannel, commentVotesChannel, postVotesChannel);
     }
+
+    return () => {
+      mountedRef.current = false;
+      channels.forEach((ch) => supabase.removeChannel(ch));
+    };
   }, [id]);
 
   if (loading) return <div className="loading">Loading post...</div>;

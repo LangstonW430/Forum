@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { useToast } from "../contexts/ToastContext";
 import type { Comment } from "../types";
 import NewCommentForm from "./NewCommentForm";
 import VoteButtons from "./VoteButtons";
@@ -27,6 +28,7 @@ export default function CommentItem({
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
+  const toast = useToast();
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -57,7 +59,7 @@ export default function CommentItem({
 
     if (error) {
       console.error("Error updating comment:", error);
-      alert("Failed to update comment");
+      toast.error("Failed to update comment");
     } else {
       setIsEditing(false);
       if (onCommentUpdate) onCommentUpdate();
@@ -79,7 +81,7 @@ export default function CommentItem({
 
     if (error) {
       console.error("Error deleting comment:", error);
-      alert("Failed to delete comment");
+      toast.error("Failed to delete comment");
     } else {
       if (onCommentUpdate) onCommentUpdate();
     }

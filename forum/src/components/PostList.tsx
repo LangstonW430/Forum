@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { useToast } from "../contexts/ToastContext";
 import VoteButtons from "./VoteButtons";
 import Avatar from "./Avatar";
 import ImageLightbox from "./ImageLightbox";
@@ -40,6 +41,7 @@ export default function PostList() {
   const [loading, setLoading] = useState(true);
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const toast = useToast();
 
   // Test Supabase connection on mount
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function PostList() {
         const { error } = await supabase.from("posts").select("count").limit(1);
         if (error) {
           console.error("Supabase connection error:", error);
-          alert("Database connection issue. Please check your Supabase setup.");
+          toast.error("Database connection issue. Please check your Supabase setup.");
         } else {
           console.log("Supabase connection successful");
         }
@@ -134,7 +136,7 @@ export default function PostList() {
 
     if (error) {
       console.error("Error fetching posts:", error);
-      alert(`Error fetching posts: ${error.message}`);
+      toast.error(`Error fetching posts: ${error.message}`);
     } else {
       console.log("Posts fetched successfully:", data);
       // Calculate vote counts and user votes for each post

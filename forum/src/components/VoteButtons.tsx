@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useToast } from "../contexts/ToastContext";
 
 interface VoteButtonsProps {
   itemId: string;
@@ -17,6 +18,7 @@ export default function VoteButtons({
   onVoteUpdate,
 }: VoteButtonsProps) {
   const [loading, setLoading] = useState(false);
+  const toast = useToast();
 
   const handleVote = async (voteType: number) => {
     if (loading) return;
@@ -28,7 +30,7 @@ export default function VoteButtons({
       } = await supabase.auth.getUser();
 
       if (!user) {
-        alert("You must be logged in to vote");
+        toast.info("You must be logged in to vote");
         setLoading(false);
         return;
       }
@@ -79,7 +81,7 @@ export default function VoteButtons({
       onVoteUpdate(newVoteCount, newUserVote);
     } catch (error) {
       console.error("Error voting:", error);
-      alert("Error voting. Please try again.");
+      toast.error("Error voting. Please try again.");
     } finally {
       setLoading(false);
     }

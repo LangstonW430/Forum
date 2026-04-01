@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import type { NewPost } from "../types";
+import { useToast } from "../contexts/ToastContext";
 
 export default function NewPostForm() {
   const [form, setForm] = useState<NewPost>({ title: "", content: "" });
@@ -10,6 +11,7 @@ export default function NewPostForm() {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const toast = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
@@ -42,12 +44,12 @@ export default function NewPostForm() {
       } = await supabase.auth.getUser();
 
       if (userError) {
-        alert(`Authentication error: ${userError.message}`);
+        toast.error(`Authentication error: ${userError.message}`);
         return;
       }
 
       if (!user) {
-        alert("You must be logged in to create a post");
+        toast.info("You must be logged in to create a post");
         return;
       }
 
@@ -67,11 +69,11 @@ export default function NewPostForm() {
           .insert([{ id: user.id, username }]);
 
         if (createProfileError) {
-          alert(`Failed to create user profile: ${createProfileError.message}`);
+          toast.error(`Failed to create user profile: ${createProfileError.message}`);
           return;
         }
       } else if (profileError) {
-        alert(`Profile error: ${profileError.message}`);
+        toast.error(`Profile error: ${profileError.message}`);
         return;
       }
 
@@ -86,7 +88,7 @@ export default function NewPostForm() {
           .upload(path, file, { cacheControl: "3600", upsert: false });
 
         if (uploadError) {
-          alert(`Failed to upload ${file.name}: ${uploadError.message}`);
+          toast.error(`Failed to upload ${file.name}: ${uploadError.message}`);
           return;
         }
 
@@ -107,12 +109,12 @@ export default function NewPostForm() {
       ]);
 
       if (error) {
-        alert(`Error creating post: ${error.message}`);
+        toast.error(`Error creating post: ${error.message}`);
       } else {
         navigate("/");
       }
     } catch (err) {
-      alert(`Unexpected error: ${err}`);
+      toast.error(`Unexpected error: ${err}`);
     } finally {
       setLoading(false);
     }
