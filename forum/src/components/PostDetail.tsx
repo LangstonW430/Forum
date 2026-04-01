@@ -6,6 +6,7 @@ import CommentList from "./CommentList";
 import NewCommentForm from "./NewCommentForm";
 import VoteButtons from "./VoteButtons";
 import Avatar from "./Avatar";
+import ImageLightbox from "./ImageLightbox";
 
 type SortOrder = "newest" | "oldest" | "top" | "bottom";
 
@@ -41,6 +42,7 @@ export default function PostDetail() {
   const [editNewFiles, setEditNewFiles] = useState<File[]>([]);
   const [editNewPreviews, setEditNewPreviews] = useState<string[]>([]);
   const [editSaving, setEditSaving] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePostVote = (newVoteCount: number, newUserVote: number | null) => {
@@ -504,6 +506,8 @@ export default function PostDetail() {
                           src={url}
                           alt=""
                           className="post-media-item"
+                          style={{ cursor: "zoom-in" }}
+                          onClick={() => setLightboxSrc(url)}
                         />
                       )
                     )}
@@ -576,6 +580,9 @@ export default function PostDetail() {
           onCommentUpdate={fetchComments}
         />
       </div>
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      )}
     </div>
   );
 }

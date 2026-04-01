@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import type { Post, Profile } from "../types";
 import Avatar from "../components/Avatar";
+import ImageLightbox from "../components/ImageLightbox";
 
 export default function UserProfilePage() {
   const { username } = useParams<{ username: string }>();
@@ -13,6 +14,7 @@ export default function UserProfilePage() {
   const [notFound, setNotFound] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [messagingLoading, setMessagingLoading] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -114,7 +116,14 @@ export default function UserProfilePage() {
   return (
     <div className="profile-container">
       <div className="profile-card">
-        <Avatar username={profile!.username} avatarUrl={profile!.avatar_url} size="lg" />
+        <div className="profile-avatar-center">
+          <Avatar
+            username={profile!.username}
+            avatarUrl={profile!.avatar_url}
+            size="lg"
+            onClick={profile!.avatar_url ? () => setLightboxSrc(profile!.avatar_url!) : undefined}
+          />
+        </div>
 
         <div className="user-profile-info">
           <div className="user-profile-name-row">
@@ -179,6 +188,9 @@ export default function UserProfilePage() {
           </div>
         )}
       </div>
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} circle onClose={() => setLightboxSrc(null)} />
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import VoteButtons from "./VoteButtons";
 import Avatar from "./Avatar";
+import ImageLightbox from "./ImageLightbox";
 import type { Post } from "../types";
 
 type SortOrder = "newest" | "oldest" | "popular" | "trending";
@@ -38,6 +39,7 @@ export default function PostList() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   // Test Supabase connection on mount
   useEffect(() => {
@@ -233,6 +235,8 @@ export default function PostList() {
                             src={url}
                             alt=""
                             className="post-list-thumb"
+                            style={{ cursor: "zoom-in" }}
+                            onClick={(e) => { e.preventDefault(); setLightboxSrc(url); }}
                           />
                         )
                       )}
@@ -274,6 +278,9 @@ export default function PostList() {
             </div>
           ))}
         </div>
+      )}
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
       )}
     </div>
   );
