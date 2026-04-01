@@ -39,12 +39,13 @@ export default function MessagesPage() {
         return;
       }
       setCurrentUserId(user.id);
-      await fetchConversations();
+      await fetchConversations(user.id);
     };
     init();
   }, []);
 
-  const fetchConversations = async () => {
+  const fetchConversations = async (userId?: string) => {
+    const resolvedUserId = userId ?? currentUserId;
     const { data: convos, error } = await supabase
       .from("conversations")
       .select(
@@ -94,7 +95,7 @@ export default function MessagesPage() {
     setLoading(false);
   };
 
-  const getDisplay = (convo: Conversation) => {
+  const getDisplay = (convo: Conversation, userId: string | null) => {
     if (convo.is_group) {
       const name =
         convo.name ||
@@ -102,7 +103,7 @@ export default function MessagesPage() {
       return { name, avatarUrl: null, username: name };
     }
     const other = convo.conversation_members.find(
-      (m) => m.user_id !== currentUserId,
+      (m) => m.user_id !== userId,
     );
     return {
       name: other?.profiles.username ?? "Unknown",
@@ -149,7 +150,7 @@ export default function MessagesPage() {
       ) : (
         <div className="convo-list">
           {conversations.map((convo) => {
-            const display = getDisplay(convo);
+            const display = getDisplay(convo, currentUserId);
             return (
               <Link
                 key={convo.id}

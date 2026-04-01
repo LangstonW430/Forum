@@ -73,28 +73,28 @@ export default function UserProfilePage() {
       return;
     }
 
-    // Create new DM
-    const { data: convo, error } = await supabase
-      .from("conversations")
-      .insert({ is_group: false, created_by: currentUserId })
-      .select("id")
-      .single();
+    // Create new DM — generate ID client-side to avoid RLS SELECT issue
+    const convoId = crypto.randomUUID();
 
-    if (error || !convo) {
-      alert("Failed to start conversation");
+    const { error } = await supabase
+      .from("conversations")
+      .insert({ id: convoId, is_group: false, created_by: currentUserId });
+
+    if (error) {
+      alert(`Failed to start conversation: ${error.message}`);
       setMessagingLoading(false);
       return;
     }
 
     await supabase
       .from("conversation_members")
-      .insert({ conversation_id: convo.id, user_id: currentUserId });
+      .insert({ conversation_id: convoId, user_id: currentUserId });
 
     await supabase
       .from("conversation_members")
-      .insert({ conversation_id: convo.id, user_id: profile.id });
+      .insert({ conversation_id: convoId, user_id: profile.id });
 
-    navigate(`/messages/${convo.id}`);
+    navigate(`/messages/${convoId}`);
   };
 
   if (loading) return <div className="loading">Loading profile...</div>;

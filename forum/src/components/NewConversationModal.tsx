@@ -80,19 +80,21 @@ export default function NewConversationModal({
       }
     }
 
-    // Create conversation
-    const { data: convo, error: convoError } = await supabase
+    // Generate the ID client-side so we don't need to SELECT it back
+    // (the SELECT RLS policy requires membership which doesn't exist yet)
+    const convoId = crypto.randomUUID();
+
+    const { error: convoError } = await supabase
       .from("conversations")
       .insert({
+        id: convoId,
         is_group: isGroup,
         name: isGroup && groupName.trim() ? groupName.trim() : null,
         created_by: currentUserId,
-      })
-      .select("id")
-      .single();
+      });
 
-    if (convoError || !convo) {
-      alert("Failed to create conversation");
+    if (convoError) {
+      alert(`Failed to create conversation: ${convoError.message}`);
       setCreating(false);
       return;
     }
@@ -100,7 +102,7 @@ export default function NewConversationModal({
     // Add self first (satisfies the RLS policy), then add others
     const { error: selfError } = await supabase
       .from("conversation_members")
-      .insert({ conversation_id: convo.id, user_id: currentUserId });
+      .insert({ conversation_id: convoId, user_id: currentUserId });
 
     if (selfError) {
       alert("Failed to join conversation");
@@ -110,15 +112,15 @@ export default function NewConversationModal({
 
     const { error: othersError } = await supabase
       .from("conversation_members")
-      .insert(selected.map((p) => ({ conversation_id: convo.id, user_id: p.id })));
+      .insert(selected.map((p) => ({ conversation_id: convoId, user_id: p.id })));
 
     if (othersError) {
-      alert("Failed to add members");
+      alert(`Failed to add members: ${othersError.message}`);
       setCreating(false);
       return;
     }
 
-    onCreated(convo.id);
+    onCreated(convoId);
   };
 
   return (

@@ -119,7 +119,10 @@ export default function ConversationPage() {
         .from("conversations")
         .update({ last_message_at: new Date().toISOString() })
         .eq("id", id);
+      await fetchMessages(); // don't rely solely on real-time
     } else {
+      console.error("Send message error:", error);
+      alert(`Failed to send message: ${error.message}`);
       setNewMessage(content); // restore on error
     }
     setSending(false);
