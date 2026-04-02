@@ -14,9 +14,13 @@ export default function AuthCallback() {
       return;
     }
 
+    const type = new URLSearchParams(window.location.search).get("type");
+
     supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
       if (error) {
         setError("Verification failed. The link may have expired.");
+      } else if (type === "recovery") {
+        navigate("/reset-password");
       } else {
         navigate("/");
       }
