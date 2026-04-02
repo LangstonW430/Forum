@@ -7,7 +7,9 @@ export default function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get("code");
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const type = params.get("type");
 
     if (!code) {
       navigate("/");
@@ -17,6 +19,8 @@ export default function AuthCallback() {
     supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
       if (error) {
         setError("Verification failed. The link may have expired.");
+      } else if (type === "recovery") {
+        navigate("/reset-password");
       } else {
         navigate("/");
       }
