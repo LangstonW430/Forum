@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
-export default function AuthCallback() {
+export default function ResetCallback() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
@@ -10,15 +10,15 @@ export default function AuthCallback() {
     const code = new URLSearchParams(window.location.search).get("code");
 
     if (!code) {
-      navigate("/");
+      navigate("/forgot-password");
       return;
     }
 
     supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
       if (error) {
-        setError("Verification failed. The link may have expired.");
+        setError("Reset link is invalid or has expired.");
       } else {
-        navigate("/");
+        navigate("/reset-password");
       }
     });
   }, [navigate]);
@@ -27,12 +27,12 @@ export default function AuthCallback() {
     return (
       <div className="auth-container">
         <div className="auth-card">
-          <h1 className="auth-title">Verification Failed</h1>
+          <h1 className="auth-title">Link Expired</h1>
           <p className="auth-subtitle">{error}</p>
         </div>
       </div>
     );
   }
 
-  return <div className="loading">Verifying your account...</div>;
+  return <div className="loading">Verifying reset link...</div>;
 }

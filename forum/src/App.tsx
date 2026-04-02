@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import ResetCallback from "./pages/ResetCallback";
 import ProfilePage from "./pages/ProfilePage";
 import UserProfilePage from "./pages/UserProfilePage";
 import MessagesPage from "./pages/MessagesPage";
@@ -46,6 +47,7 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/auth/reset-callback" element={<ResetCallback />} />
               <Route path="/user/:username" element={<UserProfilePage />} />
               <Route
                 path="/profile"
