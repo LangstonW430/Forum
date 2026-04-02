@@ -7,24 +7,31 @@ export default function AuthCallback() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    const type = params.get("type");
+    const code = new URLSearchParams(window.location.search).get("code");
 
     if (!code) {
       navigate("/");
       return;
     }
 
-    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-      if (error) {
-        setError("Verification failed. The link may have expired.");
-      } else if (type === "recovery") {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        subscription.unsubscribe();
         navigate("/reset-password");
-      } else {
+      } else if (event === "SIGNED_IN") {
+        subscription.unsubscribe();
         navigate("/");
       }
     });
+
+    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+      if (error) {
+        subscription.unsubscribe();
+        setError("Verification failed. The link may have expired.");
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   if (error) {
