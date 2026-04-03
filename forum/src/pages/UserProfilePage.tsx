@@ -70,6 +70,14 @@ export default function UserProfilePage() {
       return;
     }
 
+    // Ensure current user has a profile row (required by conversation_members FK)
+    const { error: profileError } = await supabase.rpc("ensure_own_profile");
+    if (profileError) {
+      alert(`Profile setup failed: ${profileError.message}`);
+      setMessagingLoading(false);
+      return;
+    }
+
     // Create new DM — generate ID client-side to avoid RLS SELECT issue
     const convoId = crypto.randomUUID();
 
@@ -83,9 +91,15 @@ export default function UserProfilePage() {
       return;
     }
 
-    await supabase
+    const { error: selfMemberError } = await supabase
       .from("conversation_members")
       .insert({ conversation_id: convoId, user_id: currentUserId });
+
+    if (selfMemberError) {
+      alert(`Failed to join conversation: ${selfMemberError.message}`);
+      setMessagingLoading(false);
+      return;
+    }
 
     await supabase
       .from("conversation_members")

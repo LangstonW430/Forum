@@ -1029,7 +1029,20 @@ body {
 }
 
 .notifications-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 1.5rem;
+}
+
+.notifications-clear-btn {
+  flex-shrink: 0;
+}
+
+/* Notification items are now always unread (feed only shows unread),
+   so make them interactive with a pointer cursor */
+.notification-item {
+  cursor: pointer;
 }
 
 .notifications-list {

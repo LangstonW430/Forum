@@ -278,6 +278,10 @@ DROP POLICY IF EXISTS "Users can update own notifications" ON notifications;
 CREATE POLICY "Users can update own notifications" ON notifications
   FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own notifications" ON notifications;
+CREATE POLICY "Users can delete own notifications" ON notifications
+  FOR DELETE USING (auth.uid() = user_id);
+
 CREATE OR REPLACE FUNCTION public.notify_on_comment()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -389,7 +393,7 @@ CREATE TABLE IF NOT EXISTS conversations (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT,                                          -- NULL for DMs, optional for groups
   is_group BOOLEAN DEFAULT FALSE NOT NULL,
-  created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   last_message_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -444,7 +448,10 @@ CREATE POLICY "Members can view conversations" ON conversations
 
 DROP POLICY IF EXISTS "Auth users can create conversations" ON conversations;
 CREATE POLICY "Auth users can create conversations" ON conversations
-  FOR INSERT WITH CHECK (auth.uid() = created_by);
+  FOR INSERT WITH CHECK (
+    auth.role() = 'authenticated'
+    AND (created_by = auth.uid() OR created_by IS NULL)
+  );
 
 DROP POLICY IF EXISTS "Members can update conversations" ON conversations;
 CREATE POLICY "Members can update conversations" ON conversations

@@ -84,6 +84,14 @@ export default function NewConversationModal({
       }
     }
 
+    // Ensure current user has a profile row (required by conversation_members FK)
+    const { error: profileError } = await supabase.rpc("ensure_own_profile");
+    if (profileError) {
+      toast.error(`Profile setup failed: ${profileError.message}`);
+      setCreating(false);
+      return;
+    }
+
     // Generate the ID client-side so we don't need to SELECT it back
     // (the SELECT RLS policy requires membership which doesn't exist yet)
     const convoId = crypto.randomUUID();
@@ -109,7 +117,7 @@ export default function NewConversationModal({
       .insert({ conversation_id: convoId, user_id: currentUserId });
 
     if (selfError) {
-      toast.error("Failed to join conversation");
+      toast.error(`Failed to join conversation: ${selfError.message}`);
       setCreating(false);
       return;
     }
