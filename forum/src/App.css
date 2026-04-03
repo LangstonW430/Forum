@@ -979,6 +979,117 @@ body {
   border-color: var(--primary-color);
 }
 
+/* Notifications bell in navbar */
+.navbar-notifications-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--text-muted);
+  border-radius: var(--radius-md);
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.navbar-notifications-btn:hover {
+  color: var(--primary-color);
+  background: var(--hover-background);
+}
+
+.navbar-notifications-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.navbar-notifications-badge--inline {
+  position: static;
+  margin-left: 0.4rem;
+  font-size: 0.75rem;
+}
+
+/* Notifications page */
+.notifications-container {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.notifications-header {
+  margin-bottom: 1.5rem;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.notification-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: var(--text-color);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.notification-item:hover {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+}
+
+.notification-item--unread {
+  border-left: 3px solid var(--primary-color);
+  background: var(--card-background);
+}
+
+.notification-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notification-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+  display: block;
+}
+
+.notification-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  flex-shrink: 0;
+}
+
 /* Profile Page */
 .profile-container {
   max-width: 680px;

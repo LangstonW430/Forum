@@ -11,6 +11,7 @@ export default function Navbar() {
   const [username, setUsername] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
 
   const fetchProfile = useCallback(async (userId: string) => {
@@ -24,6 +25,7 @@ export default function Navbar() {
   }, []);
 
   const userId = user?.id;
+
   useEffect(() => {
     if (userId) {
       fetchProfile(userId);
@@ -32,6 +34,40 @@ export default function Navbar() {
       setAvatarUrl(null);
     }
   }, [userId, fetchProfile]);
+
+  useEffect(() => {
+    if (!userId) {
+      setUnreadCount(0);
+      return;
+    }
+
+    const fetchUnread = async () => {
+      const { count } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("read", false);
+      setUnreadCount(count ?? 0);
+    };
+
+    fetchUnread();
+
+    const channel = supabase
+      .channel(`navbar-notifications:${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        fetchUnread,
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [userId]);
 
   const handleLogout = async () => {
     setMenuOpen(false);
@@ -60,6 +96,17 @@ export default function Navbar() {
               </Link>
               <Link to="/messages" className="btn btn-outline btn-sm">
                 Messages
+              </Link>
+              <Link to="/notifications" className="navbar-notifications-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {unreadCount > 0 && (
+                  <span className="navbar-notifications-badge">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </Link>
               <Link to="/profile" className="navbar-user">
                 <Avatar username={username || ""} avatarUrl={avatarUrl} size="sm" />
@@ -112,6 +159,14 @@ export default function Navbar() {
               </Link>
               <Link to="/messages" className="navbar-mobile-item" onClick={closeMenu}>
                 Messages
+              </Link>
+              <Link to="/notifications" className="navbar-mobile-item" onClick={closeMenu}>
+                Notifications
+                {unreadCount > 0 && (
+                  <span className="navbar-notifications-badge navbar-notifications-badge--inline">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </Link>
               <button className="navbar-mobile-item navbar-mobile-logout" onClick={handleLogout}>
                 Logout

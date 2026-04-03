@@ -65,3 +65,17 @@ export interface NewComment {
   post_id: string;
   parent_comment_id?: string;
 }
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: "comment" | "reply" | "message";
+  actor_id: string | null;
+  post_id: string | null;
+  comment_id: string | null;
+  conversation_id: string | null;
+  read: boolean;
+  created_at: string;
+  actor: { username: string; avatar_url: string | null } | null;
+  post: { id: string; title: string } | null;
+}

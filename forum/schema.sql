@@ -250,6 +250,90 @@ CREATE TRIGGER on_comment_change
   AFTER INSERT OR DELETE ON comments
   FOR EACH ROW EXECUTE FUNCTION public.update_value_on_comment();
 
+-- ── Notifications ────────────────────────────────────────────────────────────
+-- Users are notified when others comment on their posts, reply to their
+-- comments, or send them a message. Self-actions produce no notifications.
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id               UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id          UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  type             TEXT NOT NULL CHECK (type IN ('comment', 'reply', 'message')),
+  actor_id         UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  post_id          UUID REFERENCES posts(id) ON DELETE CASCADE,
+  comment_id       UUID REFERENCES comments(id) ON DELETE CASCADE,
+  conversation_id  UUID REFERENCES conversations(id) ON DELETE CASCADE,
+  read             BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at       TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at DESC);
+
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own notifications" ON notifications;
+CREATE POLICY "Users can view own notifications" ON notifications
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own notifications" ON notifications;
+CREATE POLICY "Users can update own notifications" ON notifications
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION public.notify_on_comment()
+RETURNS TRIGGER AS $$
+DECLARE
+  recipient_id UUID;
+BEGIN
+  IF NEW.parent_comment_id IS NULL THEN
+    SELECT user_id INTO recipient_id FROM posts WHERE id = NEW.post_id;
+  ELSE
+    SELECT user_id INTO recipient_id FROM comments WHERE id = NEW.parent_comment_id;
+  END IF;
+
+  IF recipient_id IS NULL OR recipient_id = NEW.user_id THEN
+    RETURN NULL;
+  END IF;
+
+  INSERT INTO notifications (user_id, type, actor_id, post_id, comment_id)
+  VALUES (
+    recipient_id,
+    CASE WHEN NEW.parent_comment_id IS NULL THEN 'comment' ELSE 'reply' END,
+    NEW.user_id,
+    NEW.post_id,
+    NEW.id
+  );
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS on_comment_notify ON comments;
+CREATE TRIGGER on_comment_notify
+  AFTER INSERT ON comments
+  FOR EACH ROW EXECUTE FUNCTION public.notify_on_comment();
+
+CREATE OR REPLACE FUNCTION public.notify_on_message()
+RETURNS TRIGGER AS $$
+DECLARE
+  member RECORD;
+BEGIN
+  FOR member IN
+    SELECT user_id FROM conversation_members
+    WHERE conversation_id = NEW.conversation_id
+      AND user_id != NEW.user_id
+  LOOP
+    INSERT INTO notifications (user_id, type, actor_id, conversation_id)
+    VALUES (member.user_id, 'message', NEW.user_id, NEW.conversation_id);
+  END LOOP;
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS on_message_notify ON messages;
+CREATE TRIGGER on_message_notify
+  AFTER INSERT ON messages
+  FOR EACH ROW EXECUTE FUNCTION public.notify_on_message();
+
 -- ── Storage: post-media bucket ──────────────────────────────────────────────
 -- Run this in the Supabase SQL editor AFTER creating the "post-media" bucket
 -- in Storage → New bucket (set to Public).
