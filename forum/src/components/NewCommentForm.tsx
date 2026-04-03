@@ -4,6 +4,7 @@ import type { NewComment } from "../types";
 import { useToast } from "../contexts/ToastContext";
 import { useCurrentUser } from "../contexts/UserContext";
 import { validateComment } from "../utils/validators";
+import { checkCommentRateLimit } from "../utils/rateLimiter";
 
 interface NewCommentFormProps {
   postId: string;
@@ -31,6 +32,12 @@ export default function NewCommentForm({
     const commentError = validateComment(content);
     if (commentError) {
       toast.error(commentError);
+      return;
+    }
+
+    const rateLimitError = await checkCommentRateLimit(userId);
+    if (rateLimitError) {
+      toast.error(rateLimitError);
       return;
     }
 
