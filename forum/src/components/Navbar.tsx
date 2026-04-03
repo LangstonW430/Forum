@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useCallback, useEffect, useState } from "react";
 import { useCurrentUser } from "../contexts/UserContext";
+import { useNotifications } from "../contexts/NotificationContext";
 import ThemeToggle from "./ThemeToggle";
 import Avatar from "./Avatar";
 import SearchBar from "./SearchBar";
@@ -11,7 +12,7 @@ export default function Navbar() {
   const [username, setUsername] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
 
   const fetchProfile = useCallback(async (userId: string) => {
@@ -34,40 +35,6 @@ export default function Navbar() {
       setAvatarUrl(null);
     }
   }, [userId, fetchProfile]);
-
-  useEffect(() => {
-    if (!userId) {
-      setUnreadCount(0);
-      return;
-    }
-
-    const fetchUnread = async () => {
-      const { count } = await supabase
-        .from("notifications")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("read", false);
-      setUnreadCount(count ?? 0);
-    };
-
-    fetchUnread();
-
-    const channel = supabase
-      .channel(`navbar-notifications:${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        fetchUnread,
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [userId]);
 
   const handleLogout = async () => {
     setMenuOpen(false);

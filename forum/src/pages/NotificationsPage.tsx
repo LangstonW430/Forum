@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useCurrentUser } from "../contexts/UserContext";
+import { useNotifications } from "../contexts/NotificationContext";
 import Avatar from "../components/Avatar";
 import type { Notification } from "../types";
 
 export default function NotificationsPage() {
   const { userId, loading: authLoading } = useCurrentUser();
+  const { decrementCount, resetCount } = useNotifications();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,8 +56,9 @@ export default function NotificationsPage() {
     if (processingIds.current.has(n.id)) return;
     processingIds.current.add(n.id);
 
-    // Optimistic update — remove immediately
+    // Optimistic update — remove immediately from feed and badge
     setNotifications((prev) => prev.filter((x) => x.id !== n.id));
+    decrementCount(1);
 
     // Background DB write — doesn't block navigation
     supabase
@@ -78,8 +81,9 @@ export default function NotificationsPage() {
     if (clearingAll || !userId) return;
     setClearingAll(true);
 
-    // Optimistic update — clear feed immediately
+    // Optimistic update — clear feed and badge immediately
     setNotifications([]);
+    resetCount();
 
     await supabase
       .from("notifications")

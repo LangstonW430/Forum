@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from "react-route
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { UserProvider } from "./contexts/UserContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import PostDetailPage from "./pages/PostDetailPage";
@@ -90,6 +91,7 @@ function App() {
     <ThemeProvider>
       <ToastProvider>
         <UserProvider>
+          <NotificationProvider>
           <Router>
             <div className="app-container">
               <Navbar />
@@ -99,6 +101,7 @@ function App() {
             </div>
             <Analytics />
           </Router>
+          </NotificationProvider>
         </UserProvider>
       </ToastProvider>
     </ThemeProvider>
