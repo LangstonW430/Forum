@@ -21,7 +21,7 @@ export default function UserProfilePage() {
     const loadProfile = async () => {
       const { data: profileData, error } = await supabase
         .from("profiles")
-        .select("id, username, bio, avatar_url, created_at")
+        .select("id, username, bio, avatar_url, created_at, value")
         .eq("username", username)
         .single();
 
@@ -136,6 +136,10 @@ export default function UserProfilePage() {
           <p className="user-profile-joined">
             Member since {new Date(profile!.created_at).toLocaleDateString()}
           </p>
+          <div className="user-profile-value">
+            <span className="user-profile-value-label">Value</span>
+            <span className="user-profile-value-score">{profile!.value ?? 0}</span>
+          </div>
           {profile!.bio ? (
             <p className="user-profile-bio">{profile!.bio}</p>
           ) : (

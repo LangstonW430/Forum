@@ -11,6 +11,7 @@ export default function ProfilePage() {
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [value, setValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -26,7 +27,7 @@ export default function ProfilePage() {
     const loadProfile = async () => {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("username, bio, avatar_url")
+        .select("username, bio, avatar_url, value")
         .eq("id", user.id)
         .single();
 
@@ -34,6 +35,7 @@ export default function ProfilePage() {
         setUsername(profile.username || "");
         setBio(profile.bio || "");
         setAvatarUrl(profile.avatar_url || null);
+        setValue(profile.value ?? 0);
       }
       setLoading(false);
     };
@@ -173,6 +175,11 @@ export default function ProfilePage() {
             onChange={handleFileSelected}
             style={{ display: "none" }}
           />
+
+          <div className="profile-value-display">
+            <span className="profile-value-label">Your Value</span>
+            <span className="profile-value-score">{value}</span>
+          </div>
 
           {message && (
             <div className={`alert alert-${message.type}`}>{message.text}</div>

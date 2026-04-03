@@ -4,6 +4,7 @@ export interface Profile {
   bio?: string | null;
   avatar_url?: string | null;
   created_at: string;
+  value?: number;
 }
 
 export interface Post {

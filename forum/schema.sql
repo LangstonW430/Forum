@@ -22,6 +22,9 @@ CREATE TABLE IF NOT EXISTS profiles (
 -- Add bio column if upgrading an existing database
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT;
 
+-- Add value (karma) column
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS value INTEGER NOT NULL DEFAULT 0;
+
 -- Posts table
 CREATE TABLE IF NOT EXISTS posts (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -148,6 +151,104 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- ── Value (karma) system ─────────────────────────────────────────────────────
+-- Upvotes/downvotes from others on your posts/comments change your value.
+-- Comments from others on your posts/comments give +1 value.
+-- Self-votes and self-comments have no effect.
+
+CREATE OR REPLACE FUNCTION public.update_post_author_value()
+RETURNS TRIGGER AS $$
+DECLARE
+  author_id UUID;
+BEGIN
+  IF (TG_OP = 'DELETE') THEN
+    SELECT user_id INTO author_id FROM posts WHERE id = OLD.post_id;
+    IF author_id = OLD.user_id THEN RETURN NULL; END IF;
+    UPDATE profiles SET value = value - OLD.vote_type WHERE id = author_id;
+
+  ELSIF (TG_OP = 'INSERT') THEN
+    SELECT user_id INTO author_id FROM posts WHERE id = NEW.post_id;
+    IF author_id = NEW.user_id THEN RETURN NULL; END IF;
+    UPDATE profiles SET value = value + NEW.vote_type WHERE id = author_id;
+
+  ELSIF (TG_OP = 'UPDATE') THEN
+    SELECT user_id INTO author_id FROM posts WHERE id = NEW.post_id;
+    IF author_id = NEW.user_id THEN RETURN NULL; END IF;
+    UPDATE profiles SET value = value + (NEW.vote_type - OLD.vote_type) WHERE id = author_id;
+  END IF;
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE OR REPLACE FUNCTION public.update_comment_author_value()
+RETURNS TRIGGER AS $$
+DECLARE
+  author_id UUID;
+BEGIN
+  IF (TG_OP = 'DELETE') THEN
+    SELECT user_id INTO author_id FROM comments WHERE id = OLD.comment_id;
+    IF author_id = OLD.user_id THEN RETURN NULL; END IF;
+    UPDATE profiles SET value = value - OLD.vote_type WHERE id = author_id;
+
+  ELSIF (TG_OP = 'INSERT') THEN
+    SELECT user_id INTO author_id FROM comments WHERE id = NEW.comment_id;
+    IF author_id = NEW.user_id THEN RETURN NULL; END IF;
+    UPDATE profiles SET value = value + NEW.vote_type WHERE id = author_id;
+
+  ELSIF (TG_OP = 'UPDATE') THEN
+    SELECT user_id INTO author_id FROM comments WHERE id = NEW.comment_id;
+    IF author_id = NEW.user_id THEN RETURN NULL; END IF;
+    UPDATE profiles SET value = value + (NEW.vote_type - OLD.vote_type) WHERE id = author_id;
+  END IF;
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS on_post_vote_change ON post_votes;
+CREATE TRIGGER on_post_vote_change
+  AFTER INSERT OR UPDATE OR DELETE ON post_votes
+  FOR EACH ROW EXECUTE FUNCTION public.update_post_author_value();
+
+DROP TRIGGER IF EXISTS on_comment_vote_change ON comment_votes;
+CREATE TRIGGER on_comment_vote_change
+  AFTER INSERT OR UPDATE OR DELETE ON comment_votes
+  FOR EACH ROW EXECUTE FUNCTION public.update_comment_author_value();
+
+CREATE OR REPLACE FUNCTION public.update_value_on_comment()
+RETURNS TRIGGER AS $$
+DECLARE
+  content_author_id UUID;
+BEGIN
+  IF (TG_OP = 'INSERT') THEN
+    IF NEW.parent_comment_id IS NULL THEN
+      SELECT user_id INTO content_author_id FROM posts WHERE id = NEW.post_id;
+    ELSE
+      SELECT user_id INTO content_author_id FROM comments WHERE id = NEW.parent_comment_id;
+    END IF;
+    IF content_author_id = NEW.user_id THEN RETURN NULL; END IF;
+    UPDATE profiles SET value = value + 1 WHERE id = content_author_id;
+
+  ELSIF (TG_OP = 'DELETE') THEN
+    IF OLD.parent_comment_id IS NULL THEN
+      SELECT user_id INTO content_author_id FROM posts WHERE id = OLD.post_id;
+    ELSE
+      SELECT user_id INTO content_author_id FROM comments WHERE id = OLD.parent_comment_id;
+    END IF;
+    IF content_author_id = OLD.user_id THEN RETURN NULL; END IF;
+    UPDATE profiles SET value = value - 1 WHERE id = content_author_id;
+  END IF;
+
+  RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS on_comment_change ON comments;
+CREATE TRIGGER on_comment_change
+  AFTER INSERT OR DELETE ON comments
+  FOR EACH ROW EXECUTE FUNCTION public.update_value_on_comment();
 
 -- ── Storage: post-media bucket ──────────────────────────────────────────────
 -- Run this in the Supabase SQL editor AFTER creating the "post-media" bucket

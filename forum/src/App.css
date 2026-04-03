@@ -1100,6 +1100,50 @@ body {
   font-style: italic;
 }
 
+/* Value (karma) display on public profile */
+.user-profile-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+  padding: 0.3rem 0.75rem;
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 9999px;
+  font-size: 0.875rem;
+}
+
+.user-profile-value-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.user-profile-value-score {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+/* Value display on own profile edit page */
+.profile-value-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 1rem;
+  font-size: 0.875rem;
+}
+
+.profile-value-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.profile-value-score {
+  color: var(--primary-color);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
 .user-profile-posts {
   margin-top: 2rem;
 }
