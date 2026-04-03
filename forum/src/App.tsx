@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ToastProvider } from "./contexts/ToastContext";
 import { UserProvider } from "./contexts/UserContext";
@@ -18,68 +18,79 @@ import ConversationPage from "./pages/ConversationPage";
 import AuthCallback from "./pages/AuthCallback";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ErrorBoundary from "./components/ErrorBoundary";
+import ErrorPage from "./pages/ErrorPage";
 import { Analytics } from "@vercel/analytics/react";
 import "./App.css";
+
+function AppRoutes() {
+  const location = useLocation();
+  return (
+    <ErrorBoundary
+      resetKey={location.pathname}
+      fallback={(error, reset) => <ErrorPage error={error} onReset={reset} />}
+    >
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/post/:id" element={<PostDetailPage />} />
+        <Route
+          path="/new-post"
+          element={
+            <ProtectedRoute>
+              <NewPostPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/auth/reset-callback" element={<ResetCallback />} />
+        <Route path="/user/:username" element={<UserProfilePage />} />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/messages"
+          element={
+            <ProtectedRoute>
+              <MessagesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/messages/:id"
+          element={
+            <ProtectedRoute>
+              <ConversationPage />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </ErrorBoundary>
+  );
+}
 
 function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
-      <UserProvider>
-      <Router>
-        <div className="app-container">
-          <Navbar />
-          <main className="main-content">
-            <ErrorBoundary>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/post/:id" element={<PostDetailPage />} />
-              <Route
-                path="/new-post"
-                element={
-                  <ProtectedRoute>
-                    <NewPostPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/auth/reset-callback" element={<ResetCallback />} />
-              <Route path="/user/:username" element={<UserProfilePage />} />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <ProfilePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/messages"
-                element={
-                  <ProtectedRoute>
-                    <MessagesPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/messages/:id"
-                element={
-                  <ProtectedRoute>
-                    <ConversationPage />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-            </ErrorBoundary>
-          </main>
-        </div>
-      </Router>
-      <Analytics />
-      </UserProvider>
+        <UserProvider>
+          <Router>
+            <div className="app-container">
+              <Navbar />
+              <main className="main-content">
+                <AppRoutes />
+              </main>
+            </div>
+            <Analytics />
+          </Router>
+        </UserProvider>
       </ToastProvider>
     </ThemeProvider>
   );
