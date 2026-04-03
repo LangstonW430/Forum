@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import type { NewPost } from "../types";
 import { useToast } from "../contexts/ToastContext";
 import { useCurrentUser } from "../contexts/UserContext";
+import { validatePost, validateMediaFiles } from "../utils/validators";
 
 export default function NewPostForm() {
   const [form, setForm] = useState<NewPost>({ title: "", content: "" });
@@ -42,6 +43,18 @@ export default function NewPostForm() {
     try {
       if (!user) {
         toast.info("You must be logged in to create a post");
+        return;
+      }
+
+      const postError = validatePost(form.title, form.content);
+      if (postError) {
+        toast.error(postError);
+        return;
+      }
+
+      const mediaError = validateMediaFiles(files);
+      if (mediaError) {
+        toast.error(mediaError);
         return;
       }
 

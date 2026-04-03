@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import type { NewComment } from "../types";
 import { useToast } from "../contexts/ToastContext";
 import { useCurrentUser } from "../contexts/UserContext";
+import { validateComment } from "../utils/validators";
 
 interface NewCommentFormProps {
   postId: string;
@@ -26,6 +27,13 @@ export default function NewCommentForm({
       toast.info("You must be logged in to comment");
       return;
     }
+
+    const commentError = validateComment(content);
+    if (commentError) {
+      toast.error(commentError);
+      return;
+    }
+
     setLoading(true);
 
     const comment: NewComment = {
